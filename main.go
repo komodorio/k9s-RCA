@@ -152,7 +152,7 @@ func loadConfig(cmd *cobra.Command) (*Config, error) {
 	}
 
 	clusterMapping, err := loadClusterMapping()
-	if err == nil {
+	if err == nil && clusterMapping != nil {
 		config.KomodorClusterName = convertClusterName(config.KomodorClusterName, clusterMapping)
 	}
 
@@ -547,7 +547,7 @@ func logMessage(format string, args ...interface{}) {
 func loadClusterMapping() (*ClusterMapping, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get home directory: %w", err)
+		return &ClusterMapping{Mapping: make(map[string]string)}, nil
 	}
 
 	clusterMappingFile := homeDir + "/.k9s-komodor-rca/clusters.yaml"
@@ -557,12 +557,12 @@ func loadClusterMapping() (*ClusterMapping, error) {
 		if os.IsNotExist(err) {
 			return &ClusterMapping{Mapping: make(map[string]string)}, nil
 		}
-		return nil, fmt.Errorf("failed to read cluster mapping file: %w", err)
+		return &ClusterMapping{Mapping: make(map[string]string)}, nil
 	}
 
 	var mapping ClusterMapping
 	if err := yaml.Unmarshal(data, &mapping); err != nil {
-		return nil, fmt.Errorf("failed to parse cluster mapping file: %w", err)
+		return &ClusterMapping{Mapping: make(map[string]string)}, nil
 	}
 
 	if mapping.Mapping == nil {
