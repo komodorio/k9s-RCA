@@ -1,0 +1,195 @@
+plugins:
+  rca-pod:
+    shortCut: Shift-K
+    description: "Komodor RCA (Pod)"
+    scopes:
+    - po
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=Pod
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-deployment:
+    shortCut: Shift-K
+    description: "Komodor RCA (Deployment)"
+    scopes:
+    - deploy
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=Deployment
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-service:
+    shortCut: Shift-K
+    description: "Komodor RCA (Service)"
+    scopes:
+    - svc
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=Service
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-statefulset:
+    shortCut: Shift-K
+    description: "Komodor RCA (StatefulSet)"
+    scopes:
+    - sts
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=StatefulSet
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-daemonset:
+    shortCut: Shift-K
+    description: "Komodor RCA (DaemonSet)"
+    scopes:
+    - ds
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=DaemonSet
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-ingress:
+    shortCut: Shift-K
+    description: "Komodor RCA (Ingress)"
+    scopes:
+    - ing
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=Ingress
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-configmap:
+    shortCut: Shift-K
+    description: "Komodor RCA (ConfigMap)"
+    scopes:
+    - cm
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=ConfigMap
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-secret:
+    shortCut: Shift-K
+    description: "Komodor RCA (Secret)"
+    scopes:
+    - sec
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=Secret
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-pvc:
+    shortCut: Shift-K
+    description: "Komodor RCA (PersistentVolumeClaim)"
+    scopes:
+    - pvc
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=PersistentVolumeClaim
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-job:
+    shortCut: Shift-K
+    description: "Komodor RCA (Job)"
+    scopes:
+    - job
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=Job
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-cronjob:
+    shortCut: Shift-K
+    description: "Komodor RCA (CronJob)"
+    scopes:
+    - cj
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=CronJob
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-replicaset:
+    shortCut: Shift-K
+    description: "Komodor RCA (ReplicaSet)"
+    scopes:
+    - rs
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=ReplicaSet
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-hpa:
+    shortCut: Shift-K
+    description: "Komodor RCA (HorizontalPodAutoscaler)"
+    scopes:
+    - hpa
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=HorizontalPodAutoscaler
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-pdb:
+    shortCut: Shift-K
+    description: "Komodor RCA (PodDisruptionBudget)"
+    scopes:
+    - pdb
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=PodDisruptionBudget
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
+
+  rca-networkpolicy:
+    shortCut: Shift-K
+    description: "Komodor RCA (NetworkPolicy)"
+    scopes:
+    - np
+    command: ~/.local/bin/k9s-rca
+    background: false
+    args:
+    - --kind=NetworkPolicy
+    - --namespace=$NAMESPACE
+    - --name=$NAME
+    - --poll
