@@ -161,6 +161,18 @@ pkill k9s
 k9s
 ```
 
+**Cluster mapping issues:**
+```bash
+# Check if cluster mapping file exists
+ls -la ~/.k9s-komodor-rca/clusters.yaml
+
+# Verify cluster mapping format
+cat ~/.k9s-komodor-rca/clusters.yaml
+
+# Check logs for cluster conversion messages
+tail -f ~/.k9s_komodor_logs.txt
+```
+
 ## 🎮 Usage
 
 ### Basic Workflow
@@ -191,6 +203,24 @@ k9s
 |----------|-------------|---------|
 | `KOMODOR_API_KEY` | Your Komodor API token | Required |
 | `KOMODOR_CLUSTER_NAME` | Your cluster name | Required |
+
+### Cluster Mapping
+
+The plugin supports automatic cluster name mapping to convert local cluster names to Komodor cluster names. Create a `clusters.yaml` file at `~/.k9s-komodor-rca/clusters.yaml`:
+
+```yaml
+mapping:
+  "minikube": "production-cluster-1"
+  "docker-desktop": "staging-cluster"
+  "kind-kind": "development-cluster"
+  "gke_myproject_us-central1-a_mycluster": "gke-production-cluster"
+```
+
+**How it works:**
+- If the mapping file exists, the plugin will automatically convert local cluster names to Komodor cluster names
+- If no mapping is found for a cluster name, the original name is used
+- The mapping is applied before sending requests to the Komodor API
+- A log message shows when cluster name conversion occurs
 
 ### Command Line Options
 

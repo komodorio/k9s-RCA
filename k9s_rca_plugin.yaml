@@ -1,11 +1,16 @@
 # K9s RCA Plugin Configuration
 # 
+# PREREQUISITES (required - can be set via env vars or -- flags):
+# export KOMODOR_API_KEY="your-komodor-api-token"
+# export KOMODOR_CLUSTER_NAME="your-cluster-name"
+# Or use: --api-key --cluster
+#
 # USAGE GUIDE:
 # - Press Shift-K while viewing any supported Kubernetes resource to trigger RCA analysis
 # - The --cluster=$CLUSTER parameter must match your Komodor cluster name exactly
 # - To find your cluster name: log into Komodor dashboard and check the cluster selector
 # - To find your local cluster name run `kubectl config get-clusters` (k9s will automatically set it to $CLUSTER)
-# - if you have only one cluster set --cluster=$KOMODOR_CLUSTER_NAME, make sure to set KOMODOR_CLUSTER_NAME in your .bashrc/.zshrc file
+# - if you have only one cluster set KOMODOR_CLUSTER_NAME in your .bashrc/.zshrc file instead of --cluster=$CLUSTER
 # - If cluster name doesn't match, RCA analysis will fail or analyze wrong cluster
 #
 # SUPPORTED RESOURCES:
