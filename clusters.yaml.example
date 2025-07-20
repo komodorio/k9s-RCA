@@ -1,0 +1,13 @@
+# Cluster mapping configuration
+# This file maps local cluster names to Komodor cluster names
+# Place this file at ~/.k9s-komodor-rca/clusters.yaml
+#
+# Format:
+# mapping:
+#   local-cluster-name: komodor-cluster-name
+#
+# Example:
+mapping:
+  # Local cluster name -> Komodor cluster name
+  "eks-cluster-1": "aws-production-cluster"
+  "aks-cluster": "azure-production-cluster" 
