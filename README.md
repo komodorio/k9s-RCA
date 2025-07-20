@@ -388,8 +388,8 @@ To create a new release:
 
 - [K9s Documentation](https://k9scli.io/)
 - [K9s Plugins Guide](https://k9scli.io/topics/plugins/)
-- [Komodor Documentation](https://docs.komodor.com/)
-- [Komodor API Documentation](https://docs.komodor.com/reference/api)
+- [Komodor Documentation](https://help.komodor.com/)
+- [Komodor API Documentation](https://api.komodor.com/api/docs/index.html)
 - [Go Documentation](https://golang.org/doc/)
 - [Cobra CLI Framework](https://github.com/spf13/cobra)
 
@@ -399,4 +399,4 @@ This project is licensed under the MIT License. Please refer to Komodor's terms 
 
 ---
 
-**Need help?** Check out the [Komodor documentation](https://docs.komodor.com/) or reach out to Komodor support for API-related questions.
+**Need help?** Check out the [Komodor documentation](https://help.komodor.com/) or reach out to Komodor support for API-related questions.
