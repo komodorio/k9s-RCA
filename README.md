@@ -6,7 +6,7 @@ A powerful K9s plugin that integrates Komodor's Root Cause Analysis (RCA) direct
 
 ## 🚀 What is this?
 
-This plugin allows you to seamlessly trigger Komodor's RCA analysis from within K9s without leaving your terminal. When you encounter an issue with a pod, deployment, or service, simply select it in K9s and press `Ctrl+R` to start an RCA session.
+This plugin allows you to seamlessly trigger Komodor's RCA analysis from within K9s without leaving your terminal. When you encounter an issue with a pod, deployment, or service, simply select it in K9s and press `Shift-K` to start an RCA session.
 
 **Built with Go** - This is a native Go binary that provides fast, reliable RCA triggering with comprehensive error handling and real-time monitoring capabilities.
 
@@ -151,7 +151,7 @@ ls -la ~/.config/k9s/plugins.yaml
 # Test the plugin in k9s
 k9s
 # Navigate to a resource (e.g., :po for pods)
-# Press Ctrl+R to trigger RCA
+# Press Shift-K to trigger RCA
 ```
 
 ### Troubleshooting Installation
@@ -188,43 +188,19 @@ k9s
    - `:sts` for statefulsets
    - `:ds` for daemonsets
 3. **Select a resource**: Use arrow keys to highlight the resource
-4. **Trigger RCA**: Press `Ctrl+R` or use the command `:rca`
+4. **Trigger RCA**: Press `Shift-K` or use the command `:rca`
 
 ### Available Triggers
 
 #### Keyboard Shortcuts
 | Shortcut | Description | Available In |
 |----------|-------------|-------------|
-| `Ctrl+R` | Trigger RCA analysis for selected resource | Pods, Deployments, Services, StatefulSets, DaemonSets |
-| `Ctrl+Q` | Quick RCA (runs in background) | Multiple resource types |
-
-#### Command-based Trigger
-| Command | Description | Available In |
-|---------|-------------|-------------|
-| `:rca` | Trigger RCA analysis for selected resource | All supported resource types |
+| `Shift-K` | Trigger RCA analysis for selected resource | Pods, Deployments, Services, StatefulSets, DaemonSets |
 
 ### Advanced Features
 
 - **Real-time monitoring**: Watch RCA progress with live updates
-- **Background mode**: Run RCA without blocking K9s interface
-- **Comprehensive logging**: All operations logged to `~/.k9s_komodor_logs.txt`
 - **Error handling**: Detailed error messages and recovery suggestions
-
-### Example Session
-
-```bash
-# Open K9s and navigate to pods
-k9s
-:po
-
-# Navigate to a problematic pod using arrow keys
-# Press Ctrl+R to trigger RCA
-# OR type :rca and press Enter
-
-# Output will show:
-# 🔍 Triggering RCA for Pod: my-app-pod in namespace: default
-# ✅ RCA triggered successfully!
-```
 
 ## 🔧 Configuration
 
@@ -234,7 +210,6 @@ k9s
 |----------|-------------|---------|
 | `KOMODOR_API_KEY` | Your Komodor API token | Required |
 | `KOMODOR_CLUSTER_NAME` | Your cluster name | Required |
-| `KOMODOR_BASE_URL` | Komodor API base URL | `https://api.komodor.com` |
 
 ### Command Line Options
 
@@ -261,13 +236,13 @@ You can modify the shortcuts in the plugin configuration:
 ```yaml
 plugins:
   rca-pod:
-    shortCut: Ctrl-R  # Change to your preferred shortcut
+    shortCut: Shift-K  # Change to your preferred shortcut
     description: "Komodor RCA (Pod)"
     # ... rest of configuration
 ```
 
 **Available shortcut formats:**
-- `Ctrl+Key` (e.g., `Ctrl+R`, `Ctrl+Q`) - Works on both Mac and Linux
+- `Ctrl+Key` (e.g., `Shift-K`, `Ctrl+Q`) - Works on both Mac and Linux
 - `Cmd+Key` (Mac only, e.g., `Cmd+R`)
 - `Alt+Key` (e.g., `Alt+R`)
 - `Shift+Key` (e.g., `Shift+R`)
@@ -279,7 +254,7 @@ You can modify the plugin configuration to support additional Kubernetes resourc
 ```yaml
 plugins:
   rca-custom:
-    shortCut: Ctrl-R
+    shortCut: Shift-K
     description: "RCA for Custom Resource"
     scopes:
     - crd         # Custom Resource Definition
@@ -287,21 +262,6 @@ plugins:
     - cm          # ConfigMap
     command: sh
     # ... rest of configuration
-```
-
-## 📝 Logging
-
-All plugin operations are logged to `~/.k9s_komodor_logs.txt` for debugging purposes. The log file includes:
-
-- Timestamps for all operations
-- Environment variable validation
-- API request details
-- HTTP response codes and bodies
-- Error messages and stack traces
-
-To view the logs:
-```bash
-tail -f ~/.k9s_komodor_logs.txt
 ```
 
 ## 🐛 Troubleshooting
@@ -319,6 +279,7 @@ tail -f ~/.k9s_komodor_logs.txt
 - Check the YAML syntax is correct
 - Restart K9s after making changes
 - Ensure the binary is in your PATH: `which k9s-rca`
+- Verify k9s is loading it using k9s 
 
 **"Missing required k9s environment variables"**
 - Make sure you're running the plugin on a selected resource
@@ -330,7 +291,7 @@ tail -f ~/.k9s_komodor_logs.txt
 - Verify the binary is executable: `ls -la $(which k9s-rca)`
 
 **Shortcut conflicts**
-- If `Ctrl+R` conflicts with other shortcuts, change it in the plugin configuration
+- If `Shift-K` conflicts with other shortcuts, change it in the plugin configuration
 - Use the command-based trigger (`:rca`) as an alternative
 
 **Blank screen when using shortcuts**
