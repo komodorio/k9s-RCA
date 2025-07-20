@@ -1,15 +1,36 @@
+# K9s RCA Plugin Configuration
+# 
+# USAGE GUIDE:
+# - Press Shift-K while viewing any supported Kubernetes resource to trigger RCA analysis
+# - The --cluster=$CLUSTER parameter must match your Komodor cluster name exactly
+# - To find your cluster name: log into Komodor dashboard and check the cluster selector
+# - To find your local cluster name run `kubectl config get-clusters` (k9s will automatically set it to $CLUSTER)
+# - if you have only one cluster set --cluster=$KOMODOR_CLUSTER_NAME, make sure to set KOMODOR_CLUSTER_NAME in your .bashrc/.zshrc file
+# - If cluster name doesn't match, RCA analysis will fail or analyze wrong cluster
+#
+# SUPPORTED RESOURCES:
+# - Pods (po), Deployments (deploy), Services (svc), StatefulSets (sts)
+# - DaemonSets (ds), Ingress (ing), ConfigMaps (cm), Secrets (sec)
+# - PersistentVolumeClaims (pvc), Jobs (job), CronJobs (cj), ReplicaSets (rs)
+# - HorizontalPodAutoscalers (hpa), PodDisruptionBudgets (pdb), NetworkPolicies (np)
+#
+# K9S PLUGINS DOCUMENTATION:
+# - https://k9scli.io/topics/plugins/
+# - Available environment variables: $NAMESPACE, $NAME, $CLUSTER, $CONTEXT, $USER, $GROUPS, etc.
+#
 plugins:
   rca-pod:
     shortCut: Shift-K
     description: "Komodor RCA (Pod)"
     scopes:
     - po
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=Pod
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-deployment:
@@ -17,12 +38,13 @@ plugins:
     description: "Komodor RCA (Deployment)"
     scopes:
     - deploy
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=Deployment
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-service:
@@ -30,12 +52,13 @@ plugins:
     description: "Komodor RCA (Service)"
     scopes:
     - svc
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=Service
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-statefulset:
@@ -43,12 +66,13 @@ plugins:
     description: "Komodor RCA (StatefulSet)"
     scopes:
     - sts
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=StatefulSet
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-daemonset:
@@ -56,12 +80,13 @@ plugins:
     description: "Komodor RCA (DaemonSet)"
     scopes:
     - ds
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=DaemonSet
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-ingress:
@@ -69,12 +94,13 @@ plugins:
     description: "Komodor RCA (Ingress)"
     scopes:
     - ing
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=Ingress
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-configmap:
@@ -82,12 +108,13 @@ plugins:
     description: "Komodor RCA (ConfigMap)"
     scopes:
     - cm
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=ConfigMap
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-secret:
@@ -95,12 +122,13 @@ plugins:
     description: "Komodor RCA (Secret)"
     scopes:
     - sec
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=Secret
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-pvc:
@@ -108,12 +136,13 @@ plugins:
     description: "Komodor RCA (PersistentVolumeClaim)"
     scopes:
     - pvc
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=PersistentVolumeClaim
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-job:
@@ -121,12 +150,13 @@ plugins:
     description: "Komodor RCA (Job)"
     scopes:
     - job
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=Job
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-cronjob:
@@ -134,12 +164,13 @@ plugins:
     description: "Komodor RCA (CronJob)"
     scopes:
     - cj
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=CronJob
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-replicaset:
@@ -147,12 +178,13 @@ plugins:
     description: "Komodor RCA (ReplicaSet)"
     scopes:
     - rs
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=ReplicaSet
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-hpa:
@@ -160,12 +192,13 @@ plugins:
     description: "Komodor RCA (HorizontalPodAutoscaler)"
     scopes:
     - hpa
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=HorizontalPodAutoscaler
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-pdb:
@@ -173,12 +206,13 @@ plugins:
     description: "Komodor RCA (PodDisruptionBudget)"
     scopes:
     - pdb
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=PodDisruptionBudget
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll
 
   rca-networkpolicy:
@@ -186,10 +220,11 @@ plugins:
     description: "Komodor RCA (NetworkPolicy)"
     scopes:
     - np
-    command: ~/.local/bin/k9s-rca
+    command: k9s-rca
     background: false
     args:
     - --kind=NetworkPolicy
     - --namespace=$NAMESPACE
     - --name=$NAME
+    - --cluster=$CLUSTER
     - --poll

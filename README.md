@@ -60,7 +60,9 @@ Before installing, make sure you have:
 git clone https://github.com/komodorio/k9s-RCA.git
 cd k9s-RCA
 
-# Build and install everything
+# Build and install everything, ~/.local/bin should be in path or provide full path in plugins.yaml
+# run k9s info to get default plugins.yaml location
+# set XDG_CONFIG_HOME env var if you have any issue with loading the plugin.
 make install-plugin
 ```
 
@@ -119,23 +121,6 @@ mkdir -p ~/.config/k9s
 cp k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
 ```
 
-#### Method 4: Using the Build Script
-
-```bash
-# Clone the repository
-git clone https://github.com/komodorio/k9s-RCA.git
-cd k9s-RCA
-
-# Run the build script
-chmod +x scripts/build-release.sh
-./scripts/build-release.sh
-
-# Install from the generated release
-cd release
-./install.sh
-./install-plugin.sh
-```
-
 ### Verify Installation
 
 After installation, verify everything is working:
@@ -188,7 +173,7 @@ k9s
    - `:sts` for statefulsets
    - `:ds` for daemonsets
 3. **Select a resource**: Use arrow keys to highlight the resource
-4. **Trigger RCA**: Press `Shift-K` or use the command `:rca`
+4. **Trigger RCA**: Press `Shift-K`
 
 ### Available Triggers
 
@@ -197,10 +182,6 @@ k9s
 |----------|-------------|-------------|
 | `Shift-K` | Trigger RCA analysis for selected resource | Pods, Deployments, Services, StatefulSets, DaemonSets |
 
-### Advanced Features
-
-- **Real-time monitoring**: Watch RCA progress with live updates
-- **Error handling**: Detailed error messages and recovery suggestions
 
 ## 🔧 Configuration
 
@@ -246,143 +227,6 @@ plugins:
 - `Cmd+Key` (Mac only, e.g., `Cmd+R`)
 - `Alt+Key` (e.g., `Alt+R`)
 - `Shift+Key` (e.g., `Shift+R`)
-
-### Customizing Resource Types
-
-You can modify the plugin configuration to support additional Kubernetes resource types:
-
-```yaml
-plugins:
-  rca-custom:
-    shortCut: Shift-K
-    description: "RCA for Custom Resource"
-    scopes:
-    - crd         # Custom Resource Definition
-    - ing         # Ingress
-    - cm          # ConfigMap
-    command: sh
-    # ... rest of configuration
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**"RCA failed" error**
-- Verify your `KOMODOR_API_KEY` is set correctly
-- Check if the API token has the necessary permissions
-- Ensure you have network connectivity to api.komodor.com
-- Check the log file: `tail ~/.k9s_komodor_logs.txt`
-
-**Plugin not appearing in K9s**
-- Verify the plugins.yaml file is in the correct location (`~/.config/k9s/plugins.yaml`)
-- Check the YAML syntax is correct
-- Restart K9s after making changes
-- Ensure the binary is in your PATH: `which k9s-rca`
-- Verify k9s is loading it using k9s 
-
-**"Missing required k9s environment variables"**
-- Make sure you're running the plugin on a selected resource
-- Verify you're in the correct resource view (pods, deployments, etc.)
-
-**Binary not found**
-- Check if the binary is installed: `which k9s-rca`
-- Reinstall using: `make install-plugin`
-- Verify the binary is executable: `ls -la $(which k9s-rca)`
-
-**Shortcut conflicts**
-- If `Shift-K` conflicts with other shortcuts, change it in the plugin configuration
-- Use the command-based trigger (`:rca`) as an alternative
-
-**Blank screen when using shortcuts**
-- Check the log file for errors: `tail ~/.k9s_komodor_logs.txt`
-- Verify environment variables are set correctly
-- Try using the `:rca` command instead
-- Test the binary directly: `k9s-rca --help`
-
-### Debug Mode
-
-The plugin automatically logs all operations. To see real-time logs:
-
-```bash
-# Watch logs in real-time
-tail -f ~/.k9s_komodor_logs.txt
-
-# Check recent logs
-tail -20 ~/.k9s_komodor_logs.txt
-```
-
-## 🔍 How it Works
-
-1. **K9s Integration**: The plugin leverages K9s' plugin system and environment variables
-2. **Context Detection**: K9s automatically provides resource context (`$NAMESPACE`, `$NAME`, `$CLUSTER`)
-3. **API Call**: The plugin makes a POST request to Komodor's RCA API endpoint
-4. **RCA Session**: Komodor creates an RCA session for the specified resource
-5. **Logging**: All operations are logged to `~/.k9s_komodor_logs.txt`
-
-### API Request Format
-
-```json
-{
-  "namespace": "default",
-  "name": "my-app-pod",
-  "kind": "Pod",
-  "clusterName": "production-cluster"
-}
-```
-
-## 🤝 Contributing
-
-This plugin is open for contributions! Common improvements:
-
-- Add support for more Kubernetes resource types
-- Enhance error handling and user feedback
-- Add configuration options for different RCA types
-- Improve the visual output
-- Add tests and improve test coverage
-- Optimize build process and release automation
-
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/komodorio/k9s-RCA.git
-cd k9s-RCA
-
-# Install dependencies
-make deps
-
-# Build for development
-make dev
-
-# Run tests
-make test
-
-# Build for release
-make release
-```
-
-### Creating GitHub Releases
-
-To create a new release:
-
-```bash
-# Build all binaries and create release archives
-./scripts/build-release.sh
-
-# The script will create:
-# - Binaries in dist/ directory
-# - Release archives in release/ directory
-# - Install scripts for easy deployment
-
-# Upload the files from release/ directory to GitHub releases
-```
-
-**Release files created:**
-- `k9s-rca-{version}-{platform}.tar.gz` - Compressed binaries with checksums
-- `k9s-rca-{version}-windows-amd64.zip` - Windows binary
-- `install.sh` - Auto-installation script
-- `install-plugin.sh` - Plugin configuration installer
 
 ## 📚 Resources
 
