@@ -50,8 +50,10 @@ type Config struct {
 func main() {
 	if err := godotenv.Load(); err != nil {
 		if err := godotenv.Load(".env"); err != nil {
-			if err := godotenv.Load("~/.k9s-komodor-rca/.env"); err != nil {
+			if homeDir, err := os.UserHomeDir(); err == nil {
+				if err := godotenv.Load(homeDir + "/.k9s-komodor-rca/.env"); err != nil {
 
+				}
 			}
 		}
 	}
@@ -130,10 +132,10 @@ func loadConfig(cmd *cobra.Command) (*Config, error) {
 }
 
 func getEnvOrFlag(cmd *cobra.Command, envVar, flagName string) string {
-	if value := os.Getenv(envVar); value != "" {
+	if value, _ := cmd.Flags().GetString(flagName); value != "" {
 		return value
 	}
-	if value, _ := cmd.Flags().GetString(flagName); value != "" {
+	if value := os.Getenv(envVar); value != "" {
 		return value
 	}
 	return ""
