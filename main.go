@@ -13,7 +13,10 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
+
+var version = "dev"
 
 type RCASession struct {
 	Namespace   string `json:"namespace"`
@@ -38,6 +41,10 @@ type RCAPollResponse struct {
 	RawData         map[string]interface{} `json:"-"`
 }
 
+type ClusterMapping struct {
+	Mapping map[string]string `yaml:"mapping"`
+}
+
 type Config struct {
 	KomodorAPIKey      string
 	KomodorClusterName string
@@ -50,8 +57,10 @@ type Config struct {
 func main() {
 	if err := godotenv.Load(); err != nil {
 		if err := godotenv.Load(".env"); err != nil {
-			if err := godotenv.Load("~/.k9s-komodor-rca/.env"); err != nil {
+			if homeDir, err := os.UserHomeDir(); err == nil {
+				if err := godotenv.Load(homeDir + "/.k9s-komodor-rca/.env"); err != nil {
 
+				}
 			}
 		}
 	}
@@ -81,21 +90,37 @@ func main() {
 func runRCA(cmd *cobra.Command, args []string) error {
 	config, err := loadConfig(cmd)
 	if err != nil {
+		fmt.Printf("\n❌ Configuration error: %v\n", err)
+		fmt.Println("\n📋 Press Enter to exit...")
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
 		return err
 	}
 
 	if err := validateConfig(config); err != nil {
+		fmt.Printf("\n❌ Validation error: %v\n", err)
+		fmt.Println("\n📋 Press Enter to exit...")
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
 		return err
 	}
 
-	logMessage("🚀 Triggering RCA for %s: %s in namespace: %s", config.Kind, config.Name, config.Namespace)
+	logMessage("🚀 Triggering RCA for %s: %s in namespace: %s on cluster: %s", config.Kind, config.Name, config.Namespace, config.KomodorClusterName)
 
 	session, err := triggerRCA(config)
 	if err != nil {
+		fmt.Printf("\n❌ RCA trigger failed: %v\n", err)
+		fmt.Println("\n📋 Press Enter to exit...")
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
 		return fmt.Errorf("failed to trigger RCA: %w", err)
 	}
 
 	if session.SessionID == "" {
+		fmt.Printf("\n❌ No session ID received from Komodor API\n")
+		fmt.Println("\n📋 Press Enter to exit...")
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
 		return fmt.Errorf("no session ID received from Komodor API")
 	}
 
@@ -126,14 +151,19 @@ func loadConfig(cmd *cobra.Command) (*Config, error) {
 		config.KomodorBaseURL = "https://api.komodor.com"
 	}
 
+	clusterMapping, err := loadClusterMapping()
+	if err == nil && clusterMapping != nil {
+		config.KomodorClusterName = convertClusterName(config.KomodorClusterName, clusterMapping)
+	}
+
 	return config, nil
 }
 
 func getEnvOrFlag(cmd *cobra.Command, envVar, flagName string) string {
-	if value := os.Getenv(envVar); value != "" {
+	if value, _ := cmd.Flags().GetString(flagName); value != "" {
 		return value
 	}
-	if value, _ := cmd.Flags().GetString(flagName); value != "" {
+	if value := os.Getenv(envVar); value != "" {
 		return value
 	}
 	return ""
@@ -225,6 +255,10 @@ func pollRCAResults(config *Config, sessionID string) error {
 			retryCount++
 			fmt.Printf("\r❌ Poll failed: %v (retry %d/%d)", err, retryCount, maxRetries)
 			if retryCount >= maxRetries {
+				fmt.Printf("\n❌ Failed to create poll request after %d retries: %v\n", maxRetries, err)
+				fmt.Println("\n📋 Press Enter to exit...")
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
 				return fmt.Errorf("failed to create poll request after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -239,6 +273,10 @@ func pollRCAResults(config *Config, sessionID string) error {
 			retryCount++
 			fmt.Printf("\r❌ Poll failed: %v (retry %d/%d)", err, retryCount, maxRetries)
 			if retryCount >= maxRetries {
+				fmt.Printf("\n❌ Failed to poll session after %d retries: %v\n", maxRetries, err)
+				fmt.Println("\n📋 Press Enter to exit...")
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
 				return fmt.Errorf("failed to poll session after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -251,6 +289,10 @@ func pollRCAResults(config *Config, sessionID string) error {
 			retryCount++
 			fmt.Printf("\r❌ Failed to read response: %v (retry %d/%d)", err, retryCount, maxRetries)
 			if retryCount >= maxRetries {
+				fmt.Printf("\n❌ Failed to read response after %d retries: %v\n", maxRetries, err)
+				fmt.Println("\n📋 Press Enter to exit...")
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
 				return fmt.Errorf("failed to read response after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -261,6 +303,10 @@ func pollRCAResults(config *Config, sessionID string) error {
 			retryCount++
 			fmt.Printf("\r❌ Polling failed (HTTP %d): %s (retry %d/%d)", resp.StatusCode, string(body), retryCount, maxRetries)
 			if retryCount >= maxRetries {
+				fmt.Printf("\n❌ Polling failed after %d retries (HTTP %d): %s\n", maxRetries, resp.StatusCode, string(body))
+				fmt.Println("\n📋 Press Enter to exit...")
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
 				return fmt.Errorf("polling failed after %d retries (HTTP %d): %s", maxRetries, resp.StatusCode, string(body))
 			}
 			time.Sleep(5 * time.Second)
@@ -275,6 +321,10 @@ func pollRCAResults(config *Config, sessionID string) error {
 			fmt.Printf("\r❌ Failed to parse raw response: %v (retry %d/%d)", err, retryCount, maxRetries)
 			logMessage("Raw response: %s", string(body))
 			if retryCount >= maxRetries {
+				fmt.Printf("\n❌ Failed to parse raw response after %d retries: %v\n", maxRetries, err)
+				fmt.Println("\n📋 Press Enter to exit...")
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
 				return fmt.Errorf("failed to parse raw response after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -287,6 +337,10 @@ func pollRCAResults(config *Config, sessionID string) error {
 			fmt.Printf("\r❌ Failed to parse structured response: %v (retry %d/%d)", err, retryCount, maxRetries)
 			logMessage("Response body: %s", string(body))
 			if retryCount >= maxRetries {
+				fmt.Printf("\n❌ Failed to parse structured response after %d retries: %v\n", maxRetries, err)
+				fmt.Println("\n📋 Press Enter to exit...")
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
 				return fmt.Errorf("failed to parse structured response after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -310,7 +364,7 @@ func pollRCAResults(config *Config, sessionID string) error {
 			displayLiveRCAResults(&pollResp, pollCount)
 			lastDisplayedData = currentData
 		} else {
-			fmt.Printf("\r⏳ Polling... (attempt %d) %s", pollCount, time.Now().Format("15:04:05"))
+			fmt.Printf("\r⏳ In Progress...")
 		}
 
 		if pollResp.IsComplete {
@@ -488,4 +542,44 @@ func logMessage(format string, args ...interface{}) {
 	} else {
 		fmt.Fprintf(os.Stderr, "Failed to open log file: %v\n", err)
 	}
+}
+
+func loadClusterMapping() (*ClusterMapping, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return &ClusterMapping{Mapping: make(map[string]string)}, nil
+	}
+
+	clusterMappingFile := homeDir + "/.k9s-komodor-rca/clusters.yaml"
+
+	data, err := os.ReadFile(clusterMappingFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &ClusterMapping{Mapping: make(map[string]string)}, nil
+		}
+		return &ClusterMapping{Mapping: make(map[string]string)}, nil
+	}
+
+	var mapping ClusterMapping
+	if err := yaml.Unmarshal(data, &mapping); err != nil {
+		return &ClusterMapping{Mapping: make(map[string]string)}, nil
+	}
+
+	if mapping.Mapping == nil {
+		mapping.Mapping = make(map[string]string)
+	}
+
+	return &mapping, nil
+}
+
+func convertClusterName(localClusterName string, mapping *ClusterMapping) string {
+	if mapping == nil || mapping.Mapping == nil {
+		return localClusterName
+	}
+
+	if komodorClusterName, exists := mapping.Mapping[localClusterName]; exists {
+		return komodorClusterName
+	}
+
+	return localClusterName
 }

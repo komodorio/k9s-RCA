@@ -19,6 +19,7 @@ go.work
 
 # Build artifacts
 k9s-rca
+release/
 k9s-rca-*
 dist/
 build/
