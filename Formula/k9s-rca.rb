@@ -204,17 +204,31 @@ class K9sRca < Formula
 
   def caveats
     <<~EOS
-      To use this plugin with k9s:
+      ⚠️  IMPORTANT: Plugin configuration required!
+      
+      For the plugin to work, you MUST complete these steps:
 
-      1. Set your Komodor API key:
-         export KOMODOR_API_KEY="your-api-key"
-
-      2. Copy the plugin configuration to k9s:
+      1. Copy the plugin configuration to k9s:
          mkdir -p ~/.config/k9s
          cp #{pkgshare}/k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
 
-      3. Start k9s and press Shift-K on any supported resource to trigger RCA
+      2. Set your Komodor API key:
+         export KOMODOR_API_KEY="your-api-key"
+         
+         Add to ~/.zshrc or ~/.bashrc to make it permanent.
 
+      3. Ensure XDG_CONFIG_HOME is set (if you have issues):
+         export XDG_CONFIG_HOME="$HOME/.config"
+         
+         Add to ~/.zshrc or ~/.bashrc to make it permanent.
+
+      4. Restart k9s (if running):
+         pkill k9s && k9s
+
+      5. In k9s, press Shift-K on any resource to trigger RCA
+
+      Without these steps, the plugin will NOT work!
+      
       For more information, visit: https://github.com/komodorio/k9s-rca
     EOS
   end

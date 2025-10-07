@@ -12,13 +12,54 @@ A K9s plugin that integrates Komodor's Root Cause Analysis directly into your Ku
 
 ## Installation
 
+### Important: K9s Plugin Configuration
+
+**For the plugin to work, K9s must find the plugin configuration file.** K9s looks for plugins in:
+- `$XDG_CONFIG_HOME/k9s/plugins.yaml` (if `XDG_CONFIG_HOME` is set)
+- `~/.config/k9s/plugins.yaml` (default)
+
+If you have issues, set `XDG_CONFIG_HOME`:
+```bash
+export XDG_CONFIG_HOME="$HOME/.config"
+```
+Add this to your `~/.bashrc` or `~/.zshrc` to make it permanent.
+
 ### Homebrew (macOS/Linux)
 
 ```bash
+# Add the tap and install
 brew tap komodorio/k9s-rca https://github.com/komodorio/k9s-rca
 brew install k9s-rca
+
+# Copy plugin configuration to k9s (REQUIRED)
 mkdir -p ~/.config/k9s
 cp $(brew --prefix)/share/k9s-rca/k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
+
+# Restart k9s if it's running
+pkill k9s
+```
+
+### Prebuilt Binaries
+
+Download from [GitHub Releases](https://github.com/komodorio/k9s-rca/releases/latest):
+
+```bash
+# Download and extract (replace VERSION, OS, and ARCH as needed)
+VERSION=1.0.0
+OS=darwin  # or linux, windows
+ARCH=arm64 # or amd64
+curl -L -o k9s-rca.tar.gz "https://github.com/komodorio/k9s-rca/releases/download/v${VERSION}/k9s-rca-${VERSION}-${OS}-${ARCH}.tar.gz"
+tar -xzf k9s-rca.tar.gz
+
+# Install binary
+sudo mv k9s-rca /usr/local/bin/
+
+# Copy plugin configuration (REQUIRED)
+mkdir -p ~/.config/k9s
+mv k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
+
+# Restart k9s if it's running
+pkill k9s
 ```
 
 ### Build from Source
@@ -26,7 +67,7 @@ cp $(brew --prefix)/share/k9s-rca/k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
 ```bash
 git clone https://github.com/komodorio/k9s-rca.git
 cd k9s-rca
-make install-plugin
+make install-plugin  # Builds binary and copies plugin config
 ```
 
 ## Configuration
@@ -87,9 +128,23 @@ Available flags:
 ## Troubleshooting
 
 **Plugin not loading:**
+
+The plugin configuration MUST be in the correct location for K9s to find it.
+
 ```bash
+# Check if XDG_CONFIG_HOME is set
+echo $XDG_CONFIG_HOME
+
+# If not set, set it and add to your shell profile
+export XDG_CONFIG_HOME="$HOME/.config"
+echo 'export XDG_CONFIG_HOME="$HOME/.config"' >> ~/.zshrc  # or ~/.bashrc
+
+# Verify plugin config exists
 ls -la ~/.config/k9s/plugins.yaml
-pkill k9s && k9s
+
+# Restart k9s completely
+pkill k9s
+k9s
 ```
 
 **Binary not found:**

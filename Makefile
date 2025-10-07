@@ -2,7 +2,7 @@
 
 BINARY_NAME=k9s-rca
 INSTALL_DIR=$(HOME)/.local/bin
-K9S_CONFIG_DIR=$(HOME)/.config/k9s
+K9S_CONFIG_DIR=$(or $(XDG_CONFIG_HOME),$(HOME)/.config)/k9s
 
 help: ## Show this help message
 	@echo "Available targets:"
@@ -21,9 +21,30 @@ install: build ## Build and install the binary
 
 install-plugin: install ## Install binary and plugin configuration
 	@echo "Installing k9s plugin configuration..."
+	@if [ -z "$(XDG_CONFIG_HOME)" ]; then \
+		echo "⚠️  XDG_CONFIG_HOME is not set. K9s will use ~/.config"; \
+		echo "   To set it permanently, add to your shell profile:"; \
+		echo "   export XDG_CONFIG_HOME=\"\$$HOME/.config\""; \
+		echo ""; \
+	fi
+	@echo "Installing plugin configuration to: $(K9S_CONFIG_DIR)/plugins.yaml"
 	mkdir -p $(K9S_CONFIG_DIR)
 	cp k9s_rca_plugin.yaml $(K9S_CONFIG_DIR)/plugins.yaml
-	@echo "Plugin configuration installed to $(K9S_CONFIG_DIR)/plugins.yaml"
+	@echo ""
+	@echo "✅ Installation complete!"
+	@echo ""
+	@echo "📋 Required setup for the plugin to work:"
+	@echo "   1. Set your Komodor API key:"
+	@echo "      export KOMODOR_API_KEY=\"your-api-key\""
+	@echo ""
+	@echo "   2. If XDG_CONFIG_HOME is not set, add to ~/.bashrc or ~/.zshrc:"
+	@echo "      export XDG_CONFIG_HOME=\"\$$HOME/.config\""
+	@echo ""
+	@echo "   3. Restart k9s (if running): pkill k9s && k9s"
+	@echo ""
+	@echo "   4. In k9s, press Shift-K on any resource to trigger RCA"
+	@echo ""
+	@echo "⚠️  Without these steps, the plugin will NOT work!"
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
