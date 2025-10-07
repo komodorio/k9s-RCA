@@ -22,7 +22,7 @@ install: build ## Build and install the binary
 install-plugin: install ## Install binary and plugin configuration
 	@echo "Installing k9s plugin configuration..."
 	mkdir -p $(K9S_CONFIG_DIR)
-	cp k9s_rca_plugin_go.yaml $(K9S_CONFIG_DIR)/plugins.yaml
+	cp k9s_rca_plugin.yaml $(K9S_CONFIG_DIR)/plugins.yaml
 	@echo "Plugin configuration installed to $(K9S_CONFIG_DIR)/plugins.yaml"
 
 clean: ## Clean build artifacts

@@ -2,7 +2,6 @@
 # 
 # PREREQUISITES (required - can be set via env vars or -- flags):
 # export KOMODOR_API_KEY="your-komodor-api-token"
-# export KOMODOR_CLUSTER_NAME="your-cluster-name"
 # Or use: --api-key --cluster
 #
 # USAGE GUIDE:
@@ -10,7 +9,6 @@
 # - The --cluster=$CLUSTER parameter must match your Komodor cluster name exactly
 # - To find your cluster name: log into Komodor dashboard and check the cluster selector
 # - To find your local cluster name run `kubectl config get-clusters` (k9s will automatically set it to $CLUSTER)
-# - if you have only one cluster set KOMODOR_CLUSTER_NAME in your .bashrc/.zshrc file instead of --cluster=$CLUSTER
 # - If cluster name doesn't match, RCA analysis will fail or analyze wrong cluster
 #
 # SUPPORTED RESOURCES:
@@ -21,215 +19,34 @@
 #
 # K9S PLUGINS DOCUMENTATION:
 # - https://k9scli.io/topics/plugins/
-# - Available environment variables: $NAMESPACE, $NAME, $CLUSTER, $CONTEXT, $USER, $GROUPS, etc.
+# - Available environment variables: $NAMESPACE, $NAME, $CLUSTER, $CONTEXT, $RESOURCE_NAME, $USER, $GROUPS, etc.
 #
 plugins:
-  rca-pod:
+  rca-resource:
     shortCut: Shift-K
-    description: "Komodor RCA (Pod)"
+    description: "Komodor RCA"
     scopes:
     - po
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=Pod
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-deployment:
-    shortCut: Shift-K
-    description: "Komodor RCA (Deployment)"
-    scopes:
     - deploy
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=Deployment
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-service:
-    shortCut: Shift-K
-    description: "Komodor RCA (Service)"
-    scopes:
     - svc
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=Service
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-statefulset:
-    shortCut: Shift-K
-    description: "Komodor RCA (StatefulSet)"
-    scopes:
     - sts
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=StatefulSet
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-daemonset:
-    shortCut: Shift-K
-    description: "Komodor RCA (DaemonSet)"
-    scopes:
     - ds
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=DaemonSet
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-ingress:
-    shortCut: Shift-K
-    description: "Komodor RCA (Ingress)"
-    scopes:
     - ing
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=Ingress
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-configmap:
-    shortCut: Shift-K
-    description: "Komodor RCA (ConfigMap)"
-    scopes:
     - cm
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=ConfigMap
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-secret:
-    shortCut: Shift-K
-    description: "Komodor RCA (Secret)"
-    scopes:
     - sec
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=Secret
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-pvc:
-    shortCut: Shift-K
-    description: "Komodor RCA (PersistentVolumeClaim)"
-    scopes:
     - pvc
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=PersistentVolumeClaim
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-job:
-    shortCut: Shift-K
-    description: "Komodor RCA (Job)"
-    scopes:
     - job
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=Job
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-cronjob:
-    shortCut: Shift-K
-    description: "Komodor RCA (CronJob)"
-    scopes:
     - cj
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=CronJob
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-replicaset:
-    shortCut: Shift-K
-    description: "Komodor RCA (ReplicaSet)"
-    scopes:
     - rs
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=ReplicaSet
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-hpa:
-    shortCut: Shift-K
-    description: "Komodor RCA (HorizontalPodAutoscaler)"
-    scopes:
     - hpa
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=HorizontalPodAutoscaler
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-pdb:
-    shortCut: Shift-K
-    description: "Komodor RCA (PodDisruptionBudget)"
-    scopes:
     - pdb
-    command: k9s-rca
-    background: false
-    args:
-    - --kind=PodDisruptionBudget
-    - --namespace=$NAMESPACE
-    - --name=$NAME
-    - --cluster=$CLUSTER
-    - --poll
-
-  rca-networkpolicy:
-    shortCut: Shift-K
-    description: "Komodor RCA (NetworkPolicy)"
-    scopes:
     - np
     command: k9s-rca
     background: false
     args:
-    - --kind=NetworkPolicy
+    - --kind=$RESOURCE_NAME
     - --namespace=$NAMESPACE
     - --name=$NAME
     - --cluster=$CLUSTER
+    - --context=$CONTEXT
     - --poll
