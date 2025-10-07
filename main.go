@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -19,7 +20,10 @@ type Config struct {
 	Kind               string
 	Context            string
 	TUI                TUI
+	Debug              bool
 }
+
+var debugMode bool
 
 func main() {
 	defer func() {
@@ -48,6 +52,7 @@ func main() {
 	rootCmd.Flags().String("base-url", "https://api.komodor.com", "Komodor API base URL")
 	rootCmd.Flags().Bool("poll", false, "Poll for RCA completion")
 	rootCmd.Flags().Bool("background", false, "Run in background mode")
+	rootCmd.Flags().Bool("debug", false, "Enable debug logging")
 
 	if err := rootCmd.Execute(); err != nil {
 		logMessage("FATAL: Command execution failed: %v", err)
@@ -67,7 +72,9 @@ func loadEnvironmentFiles() {
 }
 
 func runRCA(cmd *cobra.Command, args []string) error {
-	tui := NewConsoleTUI()
+	debugMode, _ = cmd.Flags().GetBool("debug")
+
+	tui := NewBubbleTeaTUI()
 
 	config, err := loadConfig(cmd, tui)
 	if err != nil {
@@ -108,14 +115,18 @@ func runRCA(cmd *cobra.Command, args []string) error {
 	isBackground, _ := cmd.Flags().GetBool("background")
 
 	if shouldPoll || !isBackground {
-		fmt.Println("\n🔄 Starting RCA monitoring...")
-		return pollRCAResults(config, session.SessionID)
+		if bubbleTUI, ok := config.TUI.(*BubbleTeaTUI); ok {
+			return bubbleTUI.MonitorRCA(config, session.SessionID)
+		}
+		return fmt.Errorf("TUI not properly initialized")
 	}
 
 	return nil
 }
 
 func loadConfig(cmd *cobra.Command, tui TUI) (*Config, error) {
+	debug, _ := cmd.Flags().GetBool("debug")
+
 	config := &Config{
 		KomodorAPIKey:    getEnvOrFlag(cmd, "KOMODOR_API_KEY", "api-key"),
 		KomodorBaseURL:   getEnvOrFlag(cmd, "KOMODOR_BASE_URL", "base-url"),
@@ -125,6 +136,7 @@ func loadConfig(cmd *cobra.Command, tui TUI) (*Config, error) {
 		Context:          getEnvOrFlag(cmd, "CONTEXT", "context"),
 		LocalClusterName: getEnvOrFlag(cmd, "CLUSTER", "cluster"),
 		TUI:              tui,
+		Debug:            debug,
 	}
 
 	if config.KomodorBaseURL == "" {
@@ -187,9 +199,39 @@ func maskAPIKey(apiKey string) string {
 }
 
 func logMessage(format string, args ...interface{}) {
+	if !debugMode {
+		return
+	}
+
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	message := fmt.Sprintf(format, args...)
 	logEntry := fmt.Sprintf("[%s] %s\n", timestamp, message)
+
+	logFile := os.Getenv("HOME") + "/.k9s-komodor-rca/k9s_komodor_logs.txt"
+	if f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		defer f.Close()
+		if _, err := f.WriteString(logEntry); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to write to log file: %v\n", err)
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "Failed to open log file: %v\n", err)
+	}
+}
+
+func logRawRCAData(title string, rawData map[string]interface{}) {
+	if !debugMode {
+		return
+	}
+
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+
+	jsonBytes, err := json.MarshalIndent(rawData, "", "  ")
+	if err != nil {
+		logMessage("ERROR: Failed to marshal raw RCA data: %v", err)
+		return
+	}
+
+	logEntry := fmt.Sprintf("[%s] %s:\n%s\n\n", timestamp, title, string(jsonBytes))
 
 	logFile := os.Getenv("HOME") + "/.k9s-komodor-rca/k9s_komodor_logs.txt"
 	if f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {

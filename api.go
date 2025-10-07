@@ -21,15 +21,22 @@ type RCAResponse struct {
 	Status    string `json:"status"`
 }
 
+type Evidence struct {
+	Query   string `json:"query"`
+	Snippet string `json:"snippet"`
+}
+
 type RCAPollResponse struct {
-	SessionID       string                 `json:"sessionId"`
-	IsComplete      bool                   `json:"isComplete"`
-	ProblemShort    string                 `json:"problemShort"`
-	Recommendation  string                 `json:"recommendation"`
-	WhatHappened    []string               `json:"whatHappened"`
-	EvidenceQueries []string               `json:"evidenceQueries"`
-	Operations      []string               `json:"operations"`
-	RawData         map[string]interface{} `json:"-"`
+	SessionID          string                 `json:"sessionId"`
+	IsComplete         bool                   `json:"isComplete"`
+	IsFailed           bool                   `json:"isFailed"`
+	IsStuck            bool                   `json:"isStuck"`
+	ProblemShort       string                 `json:"problemShort"`
+	Recommendation     string                 `json:"recommendation"`
+	WhatHappened       []string               `json:"whatHappened"`
+	EvidenceCollection []Evidence             `json:"evidenceCollection"`
+	Operations         []string               `json:"operations"`
+	RawData            map[string]interface{} `json:"-"`
 }
 
 type KomodorCluster struct {
@@ -192,7 +199,7 @@ func pollRCAResults(config *Config, sessionID string) error {
 			pollResp.Recommendation,
 			pollResp.SessionID,
 			len(pollResp.WhatHappened),
-			len(pollResp.EvidenceQueries),
+			len(pollResp.EvidenceCollection),
 			len(pollResp.Operations))
 
 		if currentData != lastDisplayedData {
@@ -222,6 +229,46 @@ func pollRCAResults(config *Config, sessionID string) error {
 
 	config.TUI.WaitForExit()
 	return nil
+}
+
+func fetchRCAStatus(config *Config, sessionID string) (*RCAPollResponse, error) {
+	url := fmt.Sprintf("%s/api/v2/klaudia/rca/sessions/%s", config.KomodorBaseURL, sessionID)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("x-api-key", config.KomodorAPIKey)
+
+	client := &http.Client{Timeout: 360 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("API request failed (HTTP %d): %s", resp.StatusCode, string(body))
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(body, &rawData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal raw response: %w", err)
+	}
+
+	var pollResp RCAPollResponse
+	if err := json.Unmarshal(body, &pollResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	pollResp.RawData = rawData
+
+	return &pollResp, nil
 }
 
 func fetchKomodorClusters(apiKey, baseURL string) ([]KomodorCluster, error) {
