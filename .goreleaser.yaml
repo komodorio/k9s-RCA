@@ -100,8 +100,8 @@ brews:
   - name: k9s-rca
     repository:
       owner: komodorio
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      name: k9s-rca
+      branch: main
     commit_author:
       name: komodor-bot
       email: bot@komodor.com
