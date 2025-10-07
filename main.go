@@ -18,6 +18,7 @@ type Config struct {
 	Name               string
 	Kind               string
 	Context            string
+	TUI                TUI
 }
 
 func main() {
@@ -66,16 +67,18 @@ func loadEnvironmentFiles() {
 }
 
 func runRCA(cmd *cobra.Command, args []string) error {
-	config, err := loadConfig(cmd)
+	tui := NewConsoleTUI()
+
+	config, err := loadConfig(cmd, tui)
 	if err != nil {
 		logMessage("FATAL: Configuration error: %v", err)
-		displayError("Configuration error", err)
+		tui.DisplayError("Configuration error", err)
 		return err
 	}
 
 	if err := validateConfig(config); err != nil {
 		logMessage("FATAL: Validation error: %v", err)
-		displayError("Validation error", err)
+		tui.DisplayError("Validation error", err)
 		return err
 	}
 
@@ -89,13 +92,13 @@ func runRCA(cmd *cobra.Command, args []string) error {
 	session, err := triggerRCA(config)
 	if err != nil {
 		logMessage("FATAL: RCA trigger failed: %v", err)
-		displayError("RCA trigger failed", err)
+		config.TUI.DisplayError("RCA trigger failed", err)
 		return fmt.Errorf("failed to trigger RCA: %w", err)
 	}
 
 	if session.SessionID == "" {
 		logMessage("FATAL: No session ID received from Komodor API")
-		displayError("No session ID received from Komodor API", fmt.Errorf("empty session ID"))
+		config.TUI.DisplayError("No session ID received from Komodor API", fmt.Errorf("empty session ID"))
 		return fmt.Errorf("no session ID received from Komodor API")
 	}
 
@@ -112,7 +115,7 @@ func runRCA(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func loadConfig(cmd *cobra.Command) (*Config, error) {
+func loadConfig(cmd *cobra.Command, tui TUI) (*Config, error) {
 	config := &Config{
 		KomodorAPIKey:    getEnvOrFlag(cmd, "KOMODOR_API_KEY", "api-key"),
 		KomodorBaseURL:   getEnvOrFlag(cmd, "KOMODOR_BASE_URL", "base-url"),
@@ -121,6 +124,7 @@ func loadConfig(cmd *cobra.Command) (*Config, error) {
 		Kind:             getEnvOrFlag(cmd, "KIND", "kind"),
 		Context:          getEnvOrFlag(cmd, "CONTEXT", "context"),
 		LocalClusterName: getEnvOrFlag(cmd, "CLUSTER", "cluster"),
+		TUI:              tui,
 	}
 
 	if config.KomodorBaseURL == "" {

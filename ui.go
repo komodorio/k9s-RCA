@@ -7,22 +7,22 @@ import (
 	"time"
 )
 
-func waitForExit() {
-	fmt.Println("\n📋 Press Enter to exit...")
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
+type ConsoleTUI struct{}
+
+func NewConsoleTUI() *ConsoleTUI {
+	return &ConsoleTUI{}
 }
 
-func clearScreen() {
+func (c *ConsoleTUI) ClearScreen() {
 	fmt.Print("\033[H\033[2J")
 }
 
-func displayLiveRCAResults(results *RCAPollResponse, pollCount int) {
+func (c *ConsoleTUI) DisplayLiveRCAResults(results *RCAPollResponse, pollCount int) {
 	fmt.Println("🔍 RCA ANALYSIS IN PROGRESS")
 	fmt.Println("====================")
 	fmt.Printf("📊 Poll Count: %d | Last Update: %s\n", pollCount, time.Now().Format("15:04:05"))
 	fmt.Printf("🆔 Session ID: %s\n", results.SessionID)
-	fmt.Printf("✅ Status: %s\n", getStatusText(results.IsComplete))
+	fmt.Printf("✅ Status: %s\n", c.getStatusText(results.IsComplete))
 	fmt.Println()
 
 	if results.ProblemShort != "" {
@@ -68,7 +68,7 @@ func displayLiveRCAResults(results *RCAPollResponse, pollCount int) {
 	fmt.Println("Press Ctrl+C to stop monitoring")
 }
 
-func displayFinalRCAResults(results *RCAPollResponse) {
+func (c *ConsoleTUI) DisplayFinalRCAResults(results *RCAPollResponse) {
 	fmt.Println("✅ RCA ANALYSIS COMPLETED!")
 	fmt.Println("==========================")
 	fmt.Printf("🆔 Session ID: %s\n", results.SessionID)
@@ -117,14 +117,28 @@ func displayFinalRCAResults(results *RCAPollResponse) {
 	fmt.Println("==========================")
 }
 
-func getStatusText(isComplete bool) string {
+func (c *ConsoleTUI) DisplayError(message string, err error) {
+	fmt.Printf("\n❌ %s: %v\n", message, err)
+	c.WaitForExit()
+}
+
+func (c *ConsoleTUI) DisplayMessage(message string) {
+	fmt.Println(message)
+}
+
+func (c *ConsoleTUI) DisplayProgressIndicator(message string) {
+	fmt.Printf("\r%s", message)
+}
+
+func (c *ConsoleTUI) WaitForExit() {
+	fmt.Println("\n📋 Press Enter to exit...")
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+}
+
+func (c *ConsoleTUI) getStatusText(isComplete bool) string {
 	if isComplete {
 		return "✅ Complete"
 	}
 	return "⏳ In Progress"
-}
-
-func displayError(message string, err error) {
-	fmt.Printf("\n❌ %s: %v\n", message, err)
-	waitForExit()
 }

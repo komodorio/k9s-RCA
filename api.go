@@ -92,9 +92,9 @@ func triggerRCA(config *Config) (*RCAResponse, error) {
 }
 
 func pollRCAResults(config *Config, sessionID string) error {
-	fmt.Println("\n🔄 Starting live RCA monitoring...")
-	fmt.Println("Press Ctrl+C to stop monitoring")
-	fmt.Println()
+	config.TUI.DisplayMessage("\n🔄 Starting live RCA monitoring...")
+	config.TUI.DisplayMessage("Press Ctrl+C to stop monitoring")
+	config.TUI.DisplayMessage("")
 
 	var lastDisplayedData string
 	pollCount := 0
@@ -108,10 +108,9 @@ func pollRCAResults(config *Config, sessionID string) error {
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			retryCount++
-			fmt.Printf("\r❌ Poll failed: %v (retry %d/%d)", err, retryCount, maxRetries)
+			config.TUI.DisplayProgressIndicator(fmt.Sprintf("❌ Poll failed: %v (retry %d/%d)", err, retryCount, maxRetries))
 			if retryCount >= maxRetries {
-				fmt.Printf("\n❌ Failed to create poll request after %d retries: %v\n", maxRetries, err)
-				waitForExit()
+				config.TUI.DisplayError(fmt.Sprintf("Failed to create poll request after %d retries", maxRetries), err)
 				return fmt.Errorf("failed to create poll request after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -124,10 +123,9 @@ func pollRCAResults(config *Config, sessionID string) error {
 		resp, err := client.Do(req)
 		if err != nil {
 			retryCount++
-			fmt.Printf("\r❌ Poll failed: %v (retry %d/%d)", err, retryCount, maxRetries)
+			config.TUI.DisplayProgressIndicator(fmt.Sprintf("❌ Poll failed: %v (retry %d/%d)", err, retryCount, maxRetries))
 			if retryCount >= maxRetries {
-				fmt.Printf("\n❌ Failed to poll session after %d retries: %v\n", maxRetries, err)
-				waitForExit()
+				config.TUI.DisplayError(fmt.Sprintf("Failed to poll session after %d retries", maxRetries), err)
 				return fmt.Errorf("failed to poll session after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -138,10 +136,9 @@ func pollRCAResults(config *Config, sessionID string) error {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			retryCount++
-			fmt.Printf("\r❌ Failed to read response: %v (retry %d/%d)", err, retryCount, maxRetries)
+			config.TUI.DisplayProgressIndicator(fmt.Sprintf("❌ Failed to read response: %v (retry %d/%d)", err, retryCount, maxRetries))
 			if retryCount >= maxRetries {
-				fmt.Printf("\n❌ Failed to read response after %d retries: %v\n", maxRetries, err)
-				waitForExit()
+				config.TUI.DisplayError(fmt.Sprintf("Failed to read response after %d retries", maxRetries), err)
 				return fmt.Errorf("failed to read response after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -150,10 +147,9 @@ func pollRCAResults(config *Config, sessionID string) error {
 
 		if resp.StatusCode != 200 {
 			retryCount++
-			fmt.Printf("\r❌ Polling failed (HTTP %d): %s (retry %d/%d)", resp.StatusCode, string(body), retryCount, maxRetries)
+			config.TUI.DisplayProgressIndicator(fmt.Sprintf("❌ Polling failed (HTTP %d): %s (retry %d/%d)", resp.StatusCode, string(body), retryCount, maxRetries))
 			if retryCount >= maxRetries {
-				fmt.Printf("\n❌ Polling failed after %d retries (HTTP %d): %s\n", maxRetries, resp.StatusCode, string(body))
-				waitForExit()
+				config.TUI.DisplayError(fmt.Sprintf("Polling failed after %d retries (HTTP %d)", maxRetries, resp.StatusCode), fmt.Errorf("%s", string(body)))
 				return fmt.Errorf("polling failed after %d retries (HTTP %d): %s", maxRetries, resp.StatusCode, string(body))
 			}
 			time.Sleep(5 * time.Second)
@@ -165,11 +161,10 @@ func pollRCAResults(config *Config, sessionID string) error {
 		var rawData map[string]interface{}
 		if err := json.Unmarshal(body, &rawData); err != nil {
 			retryCount++
-			fmt.Printf("\r❌ Failed to parse raw response: %v (retry %d/%d)", err, retryCount, maxRetries)
+			config.TUI.DisplayProgressIndicator(fmt.Sprintf("❌ Failed to parse raw response: %v (retry %d/%d)", err, retryCount, maxRetries))
 			logMessage("Raw response: %s", string(body))
 			if retryCount >= maxRetries {
-				fmt.Printf("\n❌ Failed to parse raw response after %d retries: %v\n", maxRetries, err)
-				waitForExit()
+				config.TUI.DisplayError(fmt.Sprintf("Failed to parse raw response after %d retries", maxRetries), err)
 				return fmt.Errorf("failed to parse raw response after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -179,11 +174,10 @@ func pollRCAResults(config *Config, sessionID string) error {
 		var pollResp RCAPollResponse
 		if err := json.Unmarshal(body, &pollResp); err != nil {
 			retryCount++
-			fmt.Printf("\r❌ Failed to parse structured response: %v (retry %d/%d)", err, retryCount, maxRetries)
+			config.TUI.DisplayProgressIndicator(fmt.Sprintf("❌ Failed to parse structured response: %v (retry %d/%d)", err, retryCount, maxRetries))
 			logMessage("Response body: %s", string(body))
 			if retryCount >= maxRetries {
-				fmt.Printf("\n❌ Failed to parse structured response after %d retries: %v\n", maxRetries, err)
-				waitForExit()
+				config.TUI.DisplayError(fmt.Sprintf("Failed to parse structured response after %d retries", maxRetries), err)
 				return fmt.Errorf("failed to parse structured response after %d retries: %w", maxRetries, err)
 			}
 			time.Sleep(5 * time.Second)
@@ -203,22 +197,22 @@ func pollRCAResults(config *Config, sessionID string) error {
 
 		if currentData != lastDisplayedData {
 			logMessage("RCA data updated - refreshing display")
-			clearScreen()
-			displayLiveRCAResults(&pollResp, pollCount)
+			config.TUI.ClearScreen()
+			config.TUI.DisplayLiveRCAResults(&pollResp, pollCount)
 			lastDisplayedData = currentData
 		} else {
-			fmt.Printf("\r⏳ In Progress...")
+			config.TUI.DisplayProgressIndicator("⏳ In Progress...")
 		}
 
 		if pollResp.IsComplete {
-			clearScreen()
-			displayFinalRCAResults(&pollResp)
+			config.TUI.ClearScreen()
+			config.TUI.DisplayFinalRCAResults(&pollResp)
 			logMessage("RCA completed successfully.")
 			break
 		}
 
 		if pollCount > 300 {
-			fmt.Println("\n⏰ Timeout reached (15 minutes). RCA may still be processing.")
+			config.TUI.DisplayMessage("\n⏰ Timeout reached (15 minutes). RCA may still be processing.")
 			logMessage("RCA polling timed out after %d attempts", pollCount)
 			break
 		}
@@ -226,7 +220,7 @@ func pollRCAResults(config *Config, sessionID string) error {
 		time.Sleep(2 * time.Second)
 	}
 
-	waitForExit()
+	config.TUI.WaitForExit()
 	return nil
 }
 
