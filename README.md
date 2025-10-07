@@ -12,10 +12,11 @@ A K9s plugin that integrates Komodor's Root Cause Analysis directly into your Ku
 
 ## Installation
 
-### Homebrew (TBD)
+### Homebrew (macOS/Linux)
 
 ```bash
-brew install komodorio/tap/k9s-rca
+brew tap komodorio/k9s-rca https://github.com/komodorio/k9s-rca
+brew install k9s-rca
 mkdir -p ~/.config/k9s
 cp $(brew --prefix)/share/k9s-rca/k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
 ```
