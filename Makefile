@@ -28,6 +28,7 @@ install-plugin: install ## Install binary and plugin configuration
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
 	rm -f $(BINARY_NAME)
+	rm -rf dist/
 	@echo "Clean complete!"
 
 test: ## Run tests
@@ -41,12 +42,21 @@ deps: ## Download dependencies
 
 dev: deps build ## Development build with dependencies
 
-release: ## Build for multiple platforms
-	@echo "Building for multiple platforms..."
-	GOOS=linux GOARCH=amd64 go build -o $(BINARY_NAME)-linux-amd64 .
-	GOOS=darwin GOARCH=amd64 go build -o $(BINARY_NAME)-darwin-amd64 .
-	GOOS=darwin GOARCH=arm64 go build -o $(BINARY_NAME)-darwin-arm64 .
-	@echo "Release builds complete!"
+release: ## Create a release using GoReleaser
+	@echo "Creating release with GoReleaser..."
+	@if ! command -v goreleaser >/dev/null 2>&1; then \
+		echo "GoReleaser not found. Install with: brew install goreleaser"; \
+		exit 1; \
+	fi
+	goreleaser release --clean
+
+release-snapshot: ## Create a snapshot release for testing
+	@echo "Creating snapshot release..."
+	@if ! command -v goreleaser >/dev/null 2>&1; then \
+		echo "GoReleaser not found. Install with: brew install goreleaser"; \
+		exit 1; \
+	fi
+	goreleaser release --snapshot --clean
 
 uninstall: ## Remove installed binary and plugin
 	@echo "Uninstalling $(BINARY_NAME)..."

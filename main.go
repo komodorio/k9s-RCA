@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 type Config struct {
 	KomodorAPIKey      string
 	LocalClusterName   string
@@ -37,10 +43,11 @@ func main() {
 	loadEnvironmentFiles()
 
 	rootCmd := &cobra.Command{
-		Use:   "k9s-rca",
-		Short: "K9s Komodor RCA Plugin",
-		Long:  "A Go-based plugin for triggering Komodor Root Cause Analysis from K9s",
-		RunE:  runRCA,
+		Use:     "k9s-rca",
+		Short:   "K9s Komodor RCA Plugin",
+		Long:    "A Go-based plugin for triggering Komodor Root Cause Analysis from K9s",
+		Version: fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date),
+		RunE:    runRCA,
 	}
 
 	rootCmd.Flags().String("kind", "", "Kubernetes resource kind (Pod, Deployment, Service, etc.)")
