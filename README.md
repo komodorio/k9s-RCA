@@ -2,7 +2,7 @@
 
 A K9s plugin that integrates Komodor's Root Cause Analysis directly into your Kubernetes workflow. Trigger RCA analysis for any Kubernetes resource with `Shift-K` while browsing your cluster.
 
-![K9s RCA Plugin Demo](demo-k9s-rca.gif)
+![K9s RCA Plugin Demo](k9s-rca.gif)
 
 ## Prerequisites
 
@@ -12,29 +12,12 @@ A K9s plugin that integrates Komodor's Root Cause Analysis directly into your Ku
 
 ## Installation
 
-### Homebrew (macOS/Linux)
+### Homebrew (TBD)
 
 ```bash
 brew install komodorio/tap/k9s-rca
 mkdir -p ~/.config/k9s
 cp $(brew --prefix)/share/k9s-rca/k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
-```
-
-### Prebuilt Binaries
-
-Download the latest release for your platform from [GitHub Releases](https://github.com/komodorio/k9s-rca/releases):
-
-```bash
-VERSION=v1.0.0
-OS=darwin  # or linux, windows
-ARCH=arm64  # or amd64
-
-curl -L -o k9s-rca.tar.gz \
-  "https://github.com/komodorio/k9s-rca/releases/download/${VERSION}/k9s-rca-${VERSION#v}-${OS}-${ARCH}.tar.gz"
-tar -xzf k9s-rca.tar.gz
-sudo mv k9s-rca /usr/local/bin/
-mkdir -p ~/.config/k9s
-mv k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
 ```
 
 ### Build from Source
@@ -47,7 +30,9 @@ make install-plugin
 
 ## Configuration
 
-Set your Komodor API key:
+Set your Komodor API key using either method:
+
+**Environment Variable:**
 
 ```bash
 export KOMODOR_API_KEY="your-api-key-here"
@@ -55,15 +40,19 @@ export KOMODOR_API_KEY="your-api-key-here"
 
 Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to persist across sessions.
 
+**`.env` File:**
+Create a `.env` file in your project directory or `~/.k9s-komodor-rca/.env`:
+```bash
+KOMODOR_API_KEY=your-api-key-here
+```
+
 ### Cluster Mapping (Optional)
 
-If your local cluster name differs from Komodor's cluster name, create `~/.k9s-komodor-rca/clusters.yaml`:
+The plugin automatically detects and matches your cluster name with Komodor. In rare cases where auto-detection fails, you can manually configure cluster name mapping by creating `~/.k9s-komodor-rca/clusters.yaml`:
 
 ```yaml
 mapping:
-  "minikube": "production-cluster-1"
-  "docker-desktop": "staging-cluster"
-  "gke_project_zone_cluster": "gke-production"
+  "local-cluster-name": "komodor-cluster-name"
 ```
 
 ## Usage
@@ -123,19 +112,10 @@ make install        # Install to ~/.local/bin
 make clean          # Clean build artifacts
 ```
 
-### Creating a Release
-
-```bash
-git tag -a v1.0.0 -m "Release v1.0.0"
-git push origin v1.0.0
-```
-
-GitHub Actions will automatically build and publish the release with GoReleaser.
-
 ## License
 
 MIT License - See [LICENSE](LICENSE) file for details.
 
 ---
 
-**Documentation**: [Komodor Help Center](https://help.komodor.com/) | **API Docs**: [api.komodor.com](https://api.komodor.com/api/docs/)
+**Documentation**: [Komodor Help Center](https://help.komodor.com/)
