@@ -48,7 +48,6 @@ Before installing, make sure you have:
 3. **Environment variables set**:
    ```bash
    export KOMODOR_API_KEY="your-komodor-api-token-here"
-   export KOMODOR_CLUSTER_NAME="your-cluster-name"
    ```
 
 ### Installation Methods
@@ -202,7 +201,6 @@ tail -f ~/.k9s_komodor_logs.txt
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `KOMODOR_API_KEY` | Your Komodor API token | Required |
-| `KOMODOR_CLUSTER_NAME` | Your cluster name | Required |
 
 ### Cluster Mapping
 
