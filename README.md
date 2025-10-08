@@ -1,274 +1,177 @@
 # K9s Komodor RCA Plugin
 
-A powerful K9s plugin that integrates Komodor's Root Cause Analysis (RCA) directly into your Kubernetes workflow. Trigger RCA analysis for any Kubernetes resource with a simple keyboard shortcut while browsing your cluster in K9s.
+A K9s plugin that integrates Komodor's Root Cause Analysis directly into your Kubernetes workflow. Trigger RCA analysis for any Kubernetes resource with `Shift-K` while browsing your cluster.
 
-![K9s RCA Plugin Demo](demo-k9s-rca.gif)
+![K9s RCA Plugin Demo](k9s-rca.gif)
 
-## 🚀 What is this?
+## Prerequisites
 
-This plugin allows you to seamlessly trigger Komodor's RCA analysis from within K9s without leaving your terminal. When you encounter an issue with a pod, deployment, or service, simply select it in K9s and press `Shift-K` to start an RCA session.
+- **Komodor Account**: Sign up at [komodor.com](https://komodor.com)
+- **API Key**: Generate from Komodor dashboard → Settings → API Keys
+- **K9s**: Install from [k9scli.io](https://k9scli.io/topics/install/)
 
-**Built with Go** - This is a native Go binary that provides fast, reliable RCA triggering with comprehensive error handling and real-time monitoring capabilities.
+## Installation
 
-## 🎯 Why use this plugin?
+### Important: K9s Plugin Configuration
 
-- **Instant RCA**: No need to switch between tools - trigger RCA analysis directly from K9s
-- **Context-aware**: Automatically uses the selected resource's namespace, name, and cluster
-- **Streamlined workflow**: Reduce context switching when investigating Kubernetes issues
-- **Keyboard-driven**: Fits perfectly into K9s' keyboard-centric interface
-- **Comprehensive logging**: All operations are logged to `~/.k9s_komodor_logs.txt` for debugging
+**For the plugin to work, K9s must find the plugin configuration file.** K9s looks for plugins in:
+- `$XDG_CONFIG_HOME/k9s/plugins.yaml` (if `XDG_CONFIG_HOME` is set)
+- `~/.config/k9s/plugins.yaml` (default)
 
-## 📋 Prerequisites
-
-### Komodor Account & API Key
-
-You need to be a **Komodor customer** to use this plugin. The plugin calls Komodor's API to trigger RCA sessions.
-
-1. **Sign up for Komodor**: Visit [komodor.com](https://komodor.com) to create an account
-2. **Generate API Key**: 
-   - Log into your Komodor dashboard
-   - Navigate to **Settings** → **API Keys**
-   - Click **Create New API Key**
-   - Give it a descriptive name (e.g., "K9s RCA Plugin")
-   - Copy the generated API key
-
-### Required Tools
-
-- **K9s**: Kubernetes CLI tool ([installation guide](https://k9scli.io/topics/install/))
-- **Go 1.21+**: For building from source (optional, pre-built binaries available)
-
-## 🛠️ Installation
-
-### Prerequisites
-
-Before installing, make sure you have:
-
-1. **Komodor Account & API Key** (see [Prerequisites](#prerequisites) section above)
-2. **K9s installed** ([installation guide](https://k9scli.io/topics/install/))
-3. **Environment variables set**:
-   ```bash
-   export KOMODOR_API_KEY="your-komodor-api-token-here"
-   ```
-
-### Installation Methods
-
-#### Method 1: Quick Install (Recommended)
-
+If you have issues, set `XDG_CONFIG_HOME`:
 ```bash
-# Clone the repository
-git clone https://github.com/komodorio/k9s-RCA.git
-cd k9s-RCA
-
-# Build and install everything, ~/.local/bin should be in path or provide full path in plugins.yaml
-# run k9s info to get default plugins.yaml location
-# set XDG_CONFIG_HOME env var if you have any issue with loading the plugin.
-make install-plugin
+export XDG_CONFIG_HOME="$HOME/.config"
 ```
+Add this to your `~/.bashrc` or `~/.zshrc` to make it permanent.
 
-#### Method 2: Download Pre-built Binary
+### Homebrew (macOS/Linux)
 
-**Step 1: Download the binary**
 ```bash
-# Detect your platform and download the appropriate binary
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
+# Add the tap and install
+brew tap komodorio/k9s-rca https://github.com/komodorio/k9s-rca
+brew install k9s-rca
 
-# Map architecture
-case $ARCH in
-    x86_64) ARCH="amd64" ;;
-    aarch64|arm64) ARCH="arm64" ;;
-    *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
-esac
-
-# Download binary
-curl -L -o k9s-rca "https://github.com/komodorio/k9s-RCA/releases/latest/download/k9s-rca-${OS}-${ARCH}"
-chmod +x k9s-rca
-
-# Install to your PATH
-sudo mv k9s-rca /usr/local/bin/
-# OR for user installation
-mkdir -p ~/.local/bin
-mv k9s-rca ~/.local/bin/
-```
-
-**Step 2: Install plugin configuration**
-```bash
-# Create k9s config directory
+# Copy plugin configuration to k9s (REQUIRED)
 mkdir -p ~/.config/k9s
+cp $(brew --prefix)/share/k9s-rca/k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
 
-# Download plugin configuration
-curl -L -o ~/.config/k9s/plugins.yaml "https://raw.githubusercontent.com/komodorio/k9s-RCA/main/k9s_rca_plugin.yaml"
+# Restart k9s if it's running
+pkill k9s
 ```
 
-#### Method 3: Build from Source
+### Prebuilt Binaries
+
+Download from [GitHub Releases](https://github.com/komodorio/k9s-rca/releases/latest):
 
 ```bash
-# Clone the repository
-git clone https://github.com/komodorio/k9s-RCA.git
-cd k9s-RCA
-
-# Build the binary
-go build -o k9s-rca .
+# Download and extract (replace VERSION, OS, and ARCH as needed)
+VERSION=1.0.0
+OS=darwin  # or linux, windows
+ARCH=arm64 # or amd64
+curl -L -o k9s-rca.tar.gz "https://github.com/komodorio/k9s-rca/releases/download/v${VERSION}/k9s-rca-${VERSION}-${OS}-${ARCH}.tar.gz"
+tar -xzf k9s-rca.tar.gz
 
 # Install binary
-sudo cp k9s-rca /usr/local/bin/
-# OR
-cp k9s-rca ~/.local/bin/
+sudo mv k9s-rca /usr/local/bin/
 
-# Install plugin configuration
+# Copy plugin configuration (REQUIRED)
 mkdir -p ~/.config/k9s
-cp k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
-```
+mv k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
 
-### Verify Installation
-
-After installation, verify everything is working:
-
-```bash
-# Check if binary is installed and executable
-which k9s-rca
-k9s-rca --help
-
-# Check if plugin configuration is in place
-ls -la ~/.config/k9s/plugins.yaml
-
-# Test the plugin in k9s
-k9s
-# Navigate to a resource (e.g., :po for pods)
-# Press Shift-K to trigger RCA
-```
-
-### Troubleshooting Installation
-
-**Binary not found:**
-```bash
-# Check if binary is in PATH
-which k9s-rca
-
-# If not found, add ~/.local/bin to PATH
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-**Plugin not working:**
-```bash
-# Check plugin configuration
-cat ~/.config/k9s/plugins.yaml
-
-# Restart k9s completely
+# Restart k9s if it's running
 pkill k9s
-k9s
 ```
 
-**Cluster mapping issues:**
+### Build from Source
+
 ```bash
-# Check if cluster mapping file exists
-ls -la ~/.k9s-komodor-rca/clusters.yaml
-
-# Verify cluster mapping format
-cat ~/.k9s-komodor-rca/clusters.yaml
-
-# Check logs for cluster conversion messages
-tail -f ~/.k9s_komodor_logs.txt
+git clone https://github.com/komodorio/k9s-rca.git
+cd k9s-rca
+make install-plugin  # Builds binary and copies plugin config
 ```
 
-## 🎮 Usage
+## Configuration
 
-### Basic Workflow
+Set your Komodor API key using either method:
 
-1. **Open K9s**: `k9s`
-2. **Navigate to a resource view**:
-   - `:po` for pods
-   - `:deploy` for deployments  
-   - `:svc` for services
-   - `:sts` for statefulsets
-   - `:ds` for daemonsets
-3. **Select a resource**: Use arrow keys to highlight the resource
-4. **Trigger RCA**: Press `Shift-K`
+**Environment Variable:**
 
-### Available Triggers
+```bash
+export KOMODOR_API_KEY="your-api-key-here"
+```
 
-#### Keyboard Shortcuts
-| Shortcut | Description | Available In |
-|----------|-------------|-------------|
-| `Shift-K` | Trigger RCA analysis for selected resource | Pods, Deployments, Services, StatefulSets, DaemonSets |
+Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to persist across sessions.
 
+**`.env` File:**
+Create a `.env` file in your project directory or `~/.k9s-komodor-rca/.env`:
+```bash
+KOMODOR_API_KEY=your-api-key-here
+```
 
-## 🔧 Configuration
+### Cluster Mapping (Optional)
 
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `KOMODOR_API_KEY` | Your Komodor API token | Required |
-
-### Cluster Mapping
-
-The plugin supports automatic cluster name mapping to convert local cluster names to Komodor cluster names. Create a `clusters.yaml` file at `~/.k9s-komodor-rca/clusters.yaml`:
+The plugin automatically detects and matches your cluster name with Komodor. In rare cases where auto-detection fails, you can manually configure cluster name mapping by creating `~/.k9s-komodor-rca/clusters.yaml`:
 
 ```yaml
 mapping:
-  "minikube": "production-cluster-1"
-  "docker-desktop": "staging-cluster"
-  "kind-kind": "development-cluster"
-  "gke_myproject_us-central1-a_mycluster": "gke-production-cluster"
+  "local-cluster-name": "komodor-cluster-name"
 ```
 
-**How it works:**
-- If the mapping file exists, the plugin will automatically convert local cluster names to Komodor cluster names
-- If no mapping is found for a cluster name, the original name is used
-- The mapping is applied before sending requests to the Komodor API
-- A log message shows when cluster name conversion occurs
+## Usage
 
-### Command Line Options
+1. Open K9s: `k9s`
+2. Navigate to any resource (`:po`, `:deploy`, `:svc`, etc.)
+3. Select a resource with arrow keys
+4. Press `Shift-K` to trigger RCA
 
-The binary supports several command-line flags for advanced usage:
+### Supported Resources
+
+Pods, Deployments, Services, StatefulSets, DaemonSets, Ingress, ConfigMaps, Secrets, PersistentVolumeClaims, Jobs, CronJobs, ReplicaSets, HorizontalPodAutoscalers, PodDisruptionBudgets, NetworkPolicies
+
+## Command Line Options
 
 ```bash
 k9s-rca --help
 ```
 
 Available flags:
-- `--kind`: Kubernetes resource kind (Pod, Deployment, Service, etc.)
-- `--namespace`: Kubernetes namespace
-- `--name`: Kubernetes resource name
-- `--api-key`: Komodor API key (overrides environment variable)
-- `--cluster`: Kubernetes cluster name (overrides environment variable)
-- `--base-url`: Komodor API base URL (overrides environment variable)
-- `--poll`: Poll for RCA completion
-- `--background`: Run in background mode
+- `--kind`: Resource kind (Pod, Deployment, etc.)
+- `--namespace`: Namespace
+- `--name`: Resource name
+- `--api-key`: Komodor API key (overrides env var)
+- `--cluster`: Cluster name
+- `--base-url`: API base URL (default: https://api.komodor.com)
+- `--poll`: Monitor RCA completion
+- `--background`: Run without TUI
+- `--debug`: Enable debug logging to `~/.k9s-komodor-rca/k9s_komodor_logs.txt`
 
-### Customizing Shortcuts
+## Troubleshooting
 
-You can modify the shortcuts in the plugin configuration:
+**Plugin not loading:**
 
-```yaml
-plugins:
-  rca-pod:
-    shortCut: Shift-K  # Change to your preferred shortcut
-    description: "Komodor RCA (Pod)"
-    # ... rest of configuration
+The plugin configuration MUST be in the correct location for K9s to find it.
+
+```bash
+# Check if XDG_CONFIG_HOME is set
+echo $XDG_CONFIG_HOME
+
+# If not set, set it and add to your shell profile
+export XDG_CONFIG_HOME="$HOME/.config"
+echo 'export XDG_CONFIG_HOME="$HOME/.config"' >> ~/.zshrc  # or ~/.bashrc
+
+# Verify plugin config exists
+ls -la ~/.config/k9s/plugins.yaml
+
+# Restart k9s completely
+pkill k9s
+k9s
 ```
 
-**Available shortcut formats:**
-- `Ctrl+Key` (e.g., `Shift-K`, `Ctrl+Q`) - Works on both Mac and Linux
-- `Cmd+Key` (Mac only, e.g., `Cmd+R`)
-- `Alt+Key` (e.g., `Alt+R`)
-- `Shift+Key` (e.g., `Shift+R`)
+**Binary not found:**
+```bash
+which k9s-rca
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
 
-## 📚 Resources
+**API errors:**
+Check logs with `--debug` flag or view `~/.k9s-komodor-rca/k9s_komodor_logs.txt`
 
-- [K9s Documentation](https://k9scli.io/)
-- [K9s Plugins Guide](https://k9scli.io/topics/plugins/)
-- [Komodor Documentation](https://help.komodor.com/)
-- [Komodor API Documentation](https://api.komodor.com/api/docs/index.html)
-- [Go Documentation](https://golang.org/doc/)
-- [Cobra CLI Framework](https://github.com/spf13/cobra)
+## Development
 
-## 📄 License
+```bash
+git clone https://github.com/komodorio/k9s-rca.git
+cd k9s-rca
+make build          # Build binary
+make test           # Run tests
+make install        # Install to ~/.local/bin
+make clean          # Clean build artifacts
+```
 
-This project is licensed under the MIT License. Please refer to Komodor's terms of service for API usage.
+## License
+
+MIT License - See [LICENSE](LICENSE) file for details.
 
 ---
 
-**Need help?** Check out the [Komodor documentation](https://help.komodor.com/) or reach out to Komodor support for API-related questions.
+**Documentation**: [Komodor Help Center](https://help.komodor.com/)

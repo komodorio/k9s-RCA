@@ -1,0 +1,196 @@
+version: 2
+
+project_name: k9s-rca
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  - id: k9s-rca
+    main: .
+    binary: k9s-rca
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - k9s_rca_plugin.yaml
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: "New Features"
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: "Bug Fixes"
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 10
+    - title: "Other Changes"
+      order: 999
+
+release:
+  github:
+    owner: komodorio
+    name: k9s-rca
+  draft: false
+  prerelease: auto
+  mode: replace
+  name_template: "v{{.Version}}"
+  header: |
+    ## K9s Komodor RCA Plugin - Release {{.Tag}}
+    
+    A powerful K9s plugin that integrates Komodor's Root Cause Analysis directly into your Kubernetes workflow.
+    
+    ### Installation
+    
+    **Homebrew (macOS/Linux):**
+    ```bash
+    brew install komodorio/tap/k9s-rca
+    ```
+    
+    **Manual Download:**
+    Download the binary for your platform below and follow the [installation instructions](https://github.com/komodorio/k9s-rca#installation).
+    
+  footer: |
+    **Full Changelog**: https://github.com/komodorio/k9s-rca/compare/{{.PreviousTag}}...{{.Tag}}
+    
+    ### What's Next?
+    - Install the plugin and configure your Komodor API key
+    - Check out the [documentation](https://github.com/komodorio/k9s-rca) for usage examples
+    - Report issues or contribute at https://github.com/komodorio/k9s-rca
+
+brews:
+  - name: k9s-rca
+    repository:
+      owner: komodorio
+      name: k9s-rca
+      branch: main
+    commit_author:
+      name: komodor-bot
+      email: bot@komodor.com
+    directory: Formula
+    homepage: https://github.com/komodorio/k9s-rca
+    description: "K9s plugin for Komodor Root Cause Analysis"
+    license: MIT
+    dependencies:
+      - name: k9s
+        type: optional
+    install: |
+      bin.install "k9s-rca"
+      (buildpath/"k9s_rca_plugin.yaml").write <<~EOS
+        # K9s RCA Plugin Configuration
+        # 
+        # PREREQUISITES (required - can be set via env vars or -- flags):
+        # export KOMODOR_API_KEY="your-komodor-api-token"
+        #
+        # USAGE: Press Shift-K while viewing any supported Kubernetes resource
+        #
+        plugins:
+          rca-resource:
+            shortCut: Shift-K
+            description: "Komodor RCA"
+            scopes:
+            - po
+            - deploy
+            - svc
+            - sts
+            - ds
+            - ing
+            - cm
+            - sec
+            - pvc
+            - job
+            - cj
+            - rs
+            - hpa
+            - pdb
+            - np
+            command: k9s-rca
+            background: false
+            args:
+            - --kind=$RESOURCE_NAME
+            - --namespace=$NAMESPACE
+            - --name=$NAME
+            - --cluster=$CLUSTER
+            - --context=$CONTEXT
+            - --poll
+      EOS
+      pkgshare.install "k9s_rca_plugin.yaml"
+    post_install: |
+      # Determine k9s config directory
+      config_dir = ENV["XDG_CONFIG_HOME"] ? "#{ENV["XDG_CONFIG_HOME"]}/k9s" : "#{ENV["HOME"]}/.config/k9s"
+      
+      # Create config directory if it doesn't exist
+      system "mkdir", "-p", config_dir
+      
+      # Copy plugin configuration
+      if File.exist?("#{config_dir}/plugins.yaml")
+        ohai "⚠️  Plugin config already exists at #{config_dir}/plugins.yaml"
+        ohai "   Backup created at #{config_dir}/plugins.yaml.backup"
+        system "cp", "#{config_dir}/plugins.yaml", "#{config_dir}/plugins.yaml.backup"
+      end
+      
+      system "cp", "#{pkgshare}/k9s_rca_plugin.yaml", "#{config_dir}/plugins.yaml"
+      ohai "✅ Plugin configuration installed to #{config_dir}/plugins.yaml"
+    caveats: |
+      ✅ Plugin configuration automatically installed!
+      
+      ⚠️  To complete setup:
+
+      1. Set your Komodor API key (REQUIRED):
+         export KOMODOR_API_KEY="your-api-key"
+         
+         Add to ~/.zshrc or ~/.bashrc to make it permanent.
+
+      2. If plugin doesn't load, ensure XDG_CONFIG_HOME is set:
+         export XDG_CONFIG_HOME="$HOME/.config"
+         
+         Add to ~/.zshrc or ~/.bashrc to make it permanent.
+
+      3. Restart k9s (if running):
+         pkill k9s && k9s
+
+      4. Press Shift-K on any Kubernetes resource to trigger RCA
+      
+      For more information: https://github.com/komodorio/k9s-rca
+
+snapshot:
+  version_template: "{{ .Version }}-next"
+
