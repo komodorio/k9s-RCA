@@ -153,19 +153,43 @@ brews:
             - --poll
       EOS
       pkgshare.install "k9s_rca_plugin.yaml"
+    post_install: |
+      # Determine k9s config directory
+      config_dir = ENV["XDG_CONFIG_HOME"] ? "#{ENV["XDG_CONFIG_HOME"]}/k9s" : "#{ENV["HOME"]}/.config/k9s"
+      
+      # Create config directory if it doesn't exist
+      system "mkdir", "-p", config_dir
+      
+      # Copy plugin configuration
+      if File.exist?("#{config_dir}/plugins.yaml")
+        ohai "⚠️  Plugin config already exists at #{config_dir}/plugins.yaml"
+        ohai "   Backup created at #{config_dir}/plugins.yaml.backup"
+        system "cp", "#{config_dir}/plugins.yaml", "#{config_dir}/plugins.yaml.backup"
+      end
+      
+      system "cp", "#{pkgshare}/k9s_rca_plugin.yaml", "#{config_dir}/plugins.yaml"
+      ohai "✅ Plugin configuration installed to #{config_dir}/plugins.yaml"
     caveats: |
-      To use this plugin with k9s:
+      ✅ Plugin configuration automatically installed!
       
-      1. Set your Komodor API key:
+      ⚠️  To complete setup:
+
+      1. Set your Komodor API key (REQUIRED):
          export KOMODOR_API_KEY="your-api-key"
+         
+         Add to ~/.zshrc or ~/.bashrc to make it permanent.
+
+      2. If plugin doesn't load, ensure XDG_CONFIG_HOME is set:
+         export XDG_CONFIG_HOME="$HOME/.config"
+         
+         Add to ~/.zshrc or ~/.bashrc to make it permanent.
+
+      3. Restart k9s (if running):
+         pkill k9s && k9s
+
+      4. Press Shift-K on any Kubernetes resource to trigger RCA
       
-      2. Copy the plugin configuration to k9s:
-         mkdir -p ~/.config/k9s
-         cp #{pkgshare}/k9s_rca_plugin.yaml ~/.config/k9s/plugins.yaml
-      
-      3. Start k9s and press Shift-K on any supported resource to trigger RCA
-      
-      For more information, visit: https://github.com/komodorio/k9s-rca
+      For more information: https://github.com/komodorio/k9s-rca
 
 snapshot:
   version_template: "{{ .Version }}-next"
