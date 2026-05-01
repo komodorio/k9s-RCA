@@ -541,6 +541,18 @@ func (m rcaModel) constrainBoxStyleToViewport(style lipgloss.Style) lipgloss.Sty
 		constrained = constrained.MarginLeft(0).MarginRight(0)
 		availableContentWidth = m.viewport.Width - constrained.GetHorizontalFrameSize()
 	}
+	if availableContentWidth <= 0 {
+		// The viewport is narrower than the horizontal frame itself (padding/border).
+		// Drop horizontal frame so final rendered width can still fit the viewport.
+		constrained = constrained.
+			MarginLeft(0).
+			MarginRight(0).
+			PaddingLeft(0).
+			PaddingRight(0).
+			BorderLeft(false).
+			BorderRight(false)
+		availableContentWidth = m.viewport.Width - constrained.GetHorizontalFrameSize()
+	}
 	if availableContentWidth < 1 {
 		availableContentWidth = 1
 	}
