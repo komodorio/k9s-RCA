@@ -287,11 +287,12 @@ func (m rcaModel) renderedHeight(content string, width int) int {
 }
 
 func (m rcaModel) layoutChromeHeight(width int) int {
-	// Measure the rendered layout with empty content so size calculations stay
-	// aligned with header/footer styles and any future layout tweaks. Count
-	// visual line-wrapping at the current viewport width so narrow terminals
-	// don't under-measure the header/footer chrome.
-	return m.renderedHeight(m.renderLayout(""), width)
+	// Measure only the non-content chrome so viewport sizing doesn't reserve
+	// an extra row for empty content. Count visual line-wrapping at the
+	// current viewport width so narrow terminals don't under-measure the
+	// header/footer chrome.
+	chrome := lipgloss.JoinVertical(lipgloss.Left, m.buildHeader(), m.buildFooter())
+	return m.renderedHeight(chrome, width)
 }
 
 func (m rcaModel) renderLayout(content string) string {
