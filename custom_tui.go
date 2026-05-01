@@ -186,7 +186,7 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "k":
 			m.viewport.LineUp(1)
 			return m, nil
-		case "up", "down", "pgup", "pgdn", "pgdown", "home", "end":
+		case "up", "down", "pgup", "pgdown", "home", "end":
 			var cmd tea.Cmd
 			m.viewport, cmd = m.viewport.Update(msg)
 			return m, cmd
