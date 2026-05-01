@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-runewidth"
 )
 
 type BubbleTeaTUI struct {
@@ -508,7 +509,7 @@ func truncateToWidth(s string, maxWidth int) string {
 	var b strings.Builder
 	currentWidth := 0
 	for _, r := range s {
-		rWidth := lipgloss.Width(string(r))
+		rWidth := runewidth.RuneWidth(r)
 		if currentWidth+rWidth > limit {
 			break
 		}
@@ -574,13 +575,22 @@ func wrapLineToWidth(line string, maxWidth int) []string {
 	currentWidth := 0
 
 	for _, r := range line {
-		rWidth := lipgloss.Width(string(r))
+		rWidth := runewidth.RuneWidth(r)
 		if currentWidth+rWidth > maxWidth {
-			out = append(out, b.String())
-			b.Reset()
-			currentWidth = 0
+			if b.Len() > 0 {
+				out = append(out, b.String())
+				b.Reset()
+				currentWidth = 0
 
-			if unicode.IsSpace(r) {
+				if unicode.IsSpace(r) {
+					continue
+				}
+			} else {
+				// Handle a single rune that's wider than the target width.
+				if unicode.IsSpace(r) {
+					continue
+				}
+				out = append(out, string(r))
 				continue
 			}
 		}
