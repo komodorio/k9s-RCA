@@ -131,7 +131,6 @@ func initialModel(config *Config, sessionID string) rcaModel {
 		maxRetries: 72,
 		results:    &RCAPollResponse{SessionID: sessionID},
 	}
-	m.refreshViewportContent()
 	return m
 }
 
@@ -260,6 +259,10 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *rcaModel) refreshViewportContent() {
+	if m.viewport.Width <= 0 || m.viewport.Height <= 0 {
+		return
+	}
+
 	wasAtBottom := m.viewport.AtBottom()
 	previousYOffset := m.viewport.YOffset
 
@@ -375,10 +378,14 @@ func (m rcaModel) buildContent() string {
 	s.WriteString("\n")
 	if len(m.results.EvidenceCollection) > 0 {
 		evidenceBoxStyle := m.constrainBoxStyleToViewport(rcaEvidenceBoxStyle)
-		evidenceInnerWidth := contentWidthForStyle(evidenceBoxStyle)
+		evidenceInnerWidth := contentWidthForStyle(evidenceBoxStyle, m.viewport.Width)
 		for i, evidence := range m.results.EvidenceCollection {
-			queryText := wrapTextToWidth(fmt.Sprintf("%d. %s", i+1, evidence.Query), evidenceInnerWidth)
-			snippetText := wrapTextToWidth("   → "+evidence.Snippet, evidenceInnerWidth)
+			queryText := fmt.Sprintf("%d. %s", i+1, evidence.Query)
+			snippetText := "   → " + evidence.Snippet
+			if evidenceInnerWidth > 0 {
+				queryText = wrapTextToWidth(queryText, evidenceInnerWidth)
+				snippetText = wrapTextToWidth(snippetText, evidenceInnerWidth)
+			}
 			evidenceContent := fmt.Sprintf("%s\n%s",
 				rcaEvidenceQueryStyle.Render(queryText),
 				rcaEvidenceSnippetStyle.Render(snippetText),
@@ -414,17 +421,25 @@ func (m rcaModel) buildContent() string {
 }
 
 func (m rcaModel) renderWrappedText(style lipgloss.Style, text string) string {
+	if m.viewport.Width <= 0 {
+		return style.Render(text)
+	}
+
 	return style.Render(wrapTextToWidth(text, m.contentWidthForTextStyle(style)))
 }
 
 func (m rcaModel) renderWrappedLabelItem(text string) string {
+	if m.viewport.Width <= 0 {
+		return rcaItemStyle.Render(rcaLabelStyle.Render(text))
+	}
+
 	wrapped := wrapTextToWidth(text, m.contentWidthForTextStyle(rcaItemStyle))
 	return rcaItemStyle.Render(rcaLabelStyle.Render(wrapped))
 }
 
 func (m rcaModel) contentWidthForTextStyle(style lipgloss.Style) int {
 	if m.viewport.Width <= 0 {
-		return 1
+		return 0
 	}
 
 	contentWidth := m.viewport.Width - style.GetHorizontalMargins() - style.GetHorizontalFrameSize()
@@ -538,18 +553,26 @@ func (m rcaModel) constrainBoxStyleToViewport(style lipgloss.Style) lipgloss.Sty
 	return constrained.Width(availableContentWidth)
 }
 
-func contentWidthForStyle(style lipgloss.Style) int {
-	contentWidth := style.GetWidth()
-	if contentWidth < 1 {
-		return 1
+func contentWidthForStyle(style lipgloss.Style, viewportWidth int) int {
+	width := style.GetWidth()
+	if width <= 0 {
+		if viewportWidth <= 0 {
+			return 0
+		}
+		width = viewportWidth - style.GetHorizontalMargins()
 	}
 
-	return contentWidth
+	innerWidth := width - style.GetHorizontalFrameSize()
+	if innerWidth < 1 {
+		return 0
+	}
+
+	return innerWidth
 }
 
 func wrapTextToWidth(s string, maxWidth int) string {
 	if maxWidth <= 0 {
-		return ""
+		return s
 	}
 
 	lines := strings.Split(s, "\n")
