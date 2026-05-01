@@ -201,8 +201,7 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.Button {
 		case tea.MouseButtonWheelUp, tea.MouseButtonWheelDown:
-			// Forward only wheel events so high-frequency mouse motion/drag
-			// messages do not trigger unnecessary viewport updates.
+			// Forward vertical wheel events.
 		default:
 			return m, nil
 		}
@@ -328,7 +327,7 @@ func (m rcaModel) buildContent() string {
 	var s strings.Builder
 
 	if m.err != nil {
-		s.WriteString(rcaErrorStyle.Render("❌ Error: " + m.err.Error()))
+		s.WriteString(m.renderWrappedText(rcaErrorStyle, "❌ Error: "+m.err.Error()))
 		return s.String()
 	}
 
@@ -348,14 +347,14 @@ func (m rcaModel) buildContent() string {
 	if m.results.ProblemShort != "" {
 		s.WriteString(rcaSectionHeaderStyle.Render("📋 Problem"))
 		s.WriteString("\n")
-		s.WriteString(rcaItemStyle.Render(m.results.ProblemShort))
+		s.WriteString(m.renderWrappedText(rcaItemStyle, m.results.ProblemShort))
 		s.WriteString("\n")
 	}
 
 	if m.results.Recommendation != "" {
 		s.WriteString(rcaSectionHeaderStyle.Render("💡 Recommendation"))
 		s.WriteString("\n")
-		s.WriteString(rcaItemStyle.Render(m.results.Recommendation))
+		s.WriteString(m.renderWrappedText(rcaItemStyle, m.results.Recommendation))
 		s.WriteString("\n")
 	}
 
@@ -363,11 +362,11 @@ func (m rcaModel) buildContent() string {
 	s.WriteString("\n")
 	if len(m.results.WhatHappened) > 0 {
 		for i, event := range m.results.WhatHappened {
-			s.WriteString(rcaItemStyle.Render(fmt.Sprintf("%d. %s", i+1, event)))
+			s.WriteString(m.renderWrappedText(rcaItemStyle, fmt.Sprintf("%d. %s", i+1, event)))
 			s.WriteString("\n")
 		}
 	} else {
-		s.WriteString(rcaItemStyle.Render(rcaLabelStyle.Render("⏳ Waiting for data...")))
+		s.WriteString(m.renderWrappedLabelItem("⏳ Waiting for data..."))
 		s.WriteString("\n")
 	}
 
@@ -387,7 +386,7 @@ func (m rcaModel) buildContent() string {
 			s.WriteString("\n")
 		}
 	} else {
-		s.WriteString(rcaItemStyle.Render(rcaLabelStyle.Render("⏳ Waiting for data...")))
+		s.WriteString(m.renderWrappedLabelItem("⏳ Waiting for data..."))
 		s.WriteString("\n")
 	}
 
@@ -396,11 +395,11 @@ func (m rcaModel) buildContent() string {
 		s.WriteString("\n")
 		if len(m.results.Operations) > 0 {
 			for i, operation := range m.results.Operations {
-				s.WriteString(rcaItemStyle.Render(fmt.Sprintf("%d. %s", i+1, operation)))
+				s.WriteString(m.renderWrappedText(rcaItemStyle, fmt.Sprintf("%d. %s", i+1, operation)))
 				s.WriteString("\n")
 			}
 		} else {
-			s.WriteString(rcaItemStyle.Render(rcaLabelStyle.Render("⏳ Waiting for data...")))
+			s.WriteString(m.renderWrappedLabelItem("⏳ Waiting for data..."))
 			s.WriteString("\n")
 		}
 	}
@@ -411,6 +410,28 @@ func (m rcaModel) buildContent() string {
 	}
 
 	return s.String()
+}
+
+func (m rcaModel) renderWrappedText(style lipgloss.Style, text string) string {
+	return style.Render(wrapTextToWidth(text, m.contentWidthForTextStyle(style)))
+}
+
+func (m rcaModel) renderWrappedLabelItem(text string) string {
+	wrapped := wrapTextToWidth(text, m.contentWidthForTextStyle(rcaItemStyle))
+	return rcaItemStyle.Render(rcaLabelStyle.Render(wrapped))
+}
+
+func (m rcaModel) contentWidthForTextStyle(style lipgloss.Style) int {
+	if m.viewport.Width <= 0 {
+		return 1
+	}
+
+	contentWidth := m.viewport.Width - style.GetHorizontalMargins() - style.GetHorizontalFrameSize()
+	if contentWidth < 1 {
+		return 1
+	}
+
+	return contentWidth
 }
 
 func (m rcaModel) buildFooter() string {
@@ -504,27 +525,25 @@ func (m rcaModel) constrainBoxStyleToViewport(style lipgloss.Style) lipgloss.Sty
 	}
 
 	constrained := style
-	availableWidth := m.viewport.Width - constrained.GetHorizontalMargins()
-	if availableWidth <= 0 {
+	availableContentWidth := m.viewport.Width - constrained.GetHorizontalMargins() - constrained.GetHorizontalFrameSize()
+	if availableContentWidth <= 0 {
 		constrained = constrained.MarginLeft(0).MarginRight(0)
-		availableWidth = m.viewport.Width
+		availableContentWidth = m.viewport.Width - constrained.GetHorizontalFrameSize()
+	}
+	if availableContentWidth < 1 {
+		availableContentWidth = 1
 	}
 
-	minimumBoxWidth := constrained.GetHorizontalPadding() + constrained.GetHorizontalBorderSize() + 1
-	if availableWidth < minimumBoxWidth {
-		availableWidth = minimumBoxWidth
-	}
-
-	return constrained.Width(availableWidth)
+	return constrained.Width(availableContentWidth)
 }
 
 func contentWidthForStyle(style lipgloss.Style) int {
-	innerWidth := style.GetWidth() - style.GetHorizontalPadding() - style.GetHorizontalBorderSize()
-	if innerWidth < 1 {
+	contentWidth := style.GetWidth()
+	if contentWidth < 1 {
 		return 1
 	}
 
-	return innerWidth
+	return contentWidth
 }
 
 func wrapTextToWidth(s string, maxWidth int) string {
