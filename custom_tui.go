@@ -160,12 +160,13 @@ func pollRCACmd(config *Config, sessionID string) tea.Cmd {
 func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.viewport.Width = msg.Width
+
 		viewportHeight := msg.Height - m.layoutChromeHeight(msg.Width)
 		if viewportHeight < 1 {
 			viewportHeight = 1
 		}
 
-		m.viewport.Width = msg.Width
 		m.viewport.Height = viewportHeight
 		m.refreshViewportContent()
 		return m, nil
