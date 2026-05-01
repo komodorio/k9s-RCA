@@ -246,8 +246,16 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m *rcaModel) wrapViewportContent(content string) string {
+	if m.viewport.Width <= 0 {
+		return content
+	}
+
+	return lipgloss.NewStyle().Width(m.viewport.Width).Render(content)
+}
+
 func (m *rcaModel) refreshViewportContent() {
-	m.viewport.SetContent(m.buildContent())
+	m.viewport.SetContent(m.wrapViewportContent(m.buildContent()))
 }
 
 func (m rcaModel) View() string {
