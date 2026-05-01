@@ -380,12 +380,8 @@ func (m rcaModel) buildContent() string {
 		evidenceBoxStyle := m.constrainBoxStyleToViewport(rcaEvidenceBoxStyle)
 		evidenceInnerWidth := contentWidthForStyle(evidenceBoxStyle, m.viewport.Width)
 		for i, evidence := range m.results.EvidenceCollection {
-			queryText := fmt.Sprintf("%d. %s", i+1, evidence.Query)
-			snippetText := "   → " + evidence.Snippet
-			if evidenceInnerWidth > 0 {
-				queryText = wrapTextToWidth(queryText, evidenceInnerWidth)
-				snippetText = wrapTextToWidth(snippetText, evidenceInnerWidth)
-			}
+			queryText := wrapWithHangingIndent(fmt.Sprintf("%d. ", i+1), evidence.Query, evidenceInnerWidth)
+			snippetText := wrapWithHangingIndent("   → ", evidence.Snippet, evidenceInnerWidth)
 			evidenceContent := fmt.Sprintf("%s\n%s",
 				rcaEvidenceQueryStyle.Render(queryText),
 				rcaEvidenceSnippetStyle.Render(snippetText),
@@ -582,6 +578,33 @@ func wrapTextToWidth(s string, maxWidth int) string {
 	}
 
 	return strings.Join(wrapped, "\n")
+}
+
+func wrapWithHangingIndent(prefix string, body string, width int) string {
+	fullText := prefix + body
+	if width <= 0 {
+		return fullText
+	}
+
+	prefixWidth := lipgloss.Width(prefix)
+	contentWidth := width - prefixWidth
+	if contentWidth < 1 {
+		return wrapTextToWidth(fullText, width)
+	}
+
+	wrappedBody := wrapTextToWidth(body, contentWidth)
+	bodyLines := strings.Split(wrappedBody, "\n")
+	if len(bodyLines) == 0 {
+		return prefix
+	}
+
+	continuationPrefix := strings.Repeat(" ", prefixWidth)
+	for i := 1; i < len(bodyLines); i++ {
+		bodyLines[i] = continuationPrefix + bodyLines[i]
+	}
+
+	bodyLines[0] = prefix + bodyLines[0]
+	return strings.Join(bodyLines, "\n")
 }
 
 func wrapLineToWidth(line string, maxWidth int) []string {
