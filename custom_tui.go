@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 type BubbleTeaTUI struct {
@@ -198,6 +199,18 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.MouseMsg:
+		if msg.Action != tea.MouseActionPress {
+			return m, nil
+		}
+
+		switch msg.Button {
+		case tea.MouseButtonWheelUp, tea.MouseButtonWheelDown:
+			// Forward only wheel events so high-frequency mouse motion/drag
+			// messages do not trigger unnecessary viewport updates.
+		default:
+			return m, nil
+		}
+
 		var cmd tea.Cmd
 		m.viewport, cmd = m.viewport.Update(msg)
 		return m, cmd
@@ -251,7 +264,7 @@ func (m *rcaModel) wrapViewportContent(content string) string {
 		return content
 	}
 
-	return lipgloss.NewStyle().Width(m.viewport.Width).Render(content)
+	return ansi.Wrap(content, m.viewport.Width, "")
 }
 
 func (m *rcaModel) refreshViewportContent() {
