@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -33,25 +34,105 @@ type rcaModel struct {
 	maxRetries int
 	width      int
 	height     int
+	viewport   viewport.Model
 }
 
 type tickMsg time.Time
 type pollResultMsg *RCAPollResponse
 type pollErrorMsg error
 
+var (
+	// Spinner
+	rcaSpinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
+	// Header
+	rcaTitleStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("86")).
+		Background(lipgloss.Color("235")).
+		Padding(0, 1).
+		MarginBottom(1)
+
+	// Content: section labels and values
+	rcaSectionHeaderStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("170")).
+		MarginTop(1)
+
+	rcaLabelStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241"))
+
+	rcaValueStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("255"))
+
+	rcaItemStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("250")).
+		PaddingLeft(2)
+
+	rcaErrorStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("196")).
+		Padding(1)
+
+	rcaSuccessStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("46"))
+
+	rcaMetaBoxStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("62")).
+		Padding(0, 1)
+
+	// Content: evidence blocks
+	rcaEvidenceBoxStyle = lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Padding(0, 1).
+		MarginLeft(2).
+		MarginBottom(1)
+
+	rcaEvidenceQueryStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("117"))
+
+	rcaEvidenceSnippetStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("252")).
+		Italic(true)
+
+	// Footer
+	rcaFooterHintStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241"))
+
+	rcaFooterStatusStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("244"))
+
+	// Status badges
+	rcaCompleteStatusStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("46"))
+
+	rcaInProgressStatusStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("226"))
+)
+
 func initialModel(config *Config, sessionID string) rcaModel {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	s.Style = rcaSpinnerStyle
+	vp := viewport.New(0, 0)
+	vp.MouseWheelEnabled = true
 
-	return rcaModel{
+	m := rcaModel{
 		config:     config,
 		sessionID:  sessionID,
 		spinner:    s,
+		viewport:   vp,
 		lastUpdate: time.Now(),
 		maxRetries: 72,
 		results:    &RCAPollResponse{SessionID: sessionID},
 	}
+	m.viewport.SetContent(m.buildContent())
+	return m
 }
 
 func (m rcaModel) Init() tea.Cmd {
@@ -83,6 +164,18 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+
+		// Keep these in sync with buildHeader/buildFooter rendered line usage.
+		const headerHeight = 3
+		const footerHeight = 2
+		viewportHeight := msg.Height - headerHeight - footerHeight
+		if viewportHeight < 1 {
+			viewportHeight = 1
+		}
+
+		m.viewport.Width = msg.Width
+		m.viewport.Height = viewportHeight
+		m.viewport.SetContent(m.buildContent())
 		return m, nil
 
 	case tea.KeyMsg:
@@ -94,7 +187,23 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.isComplete || m.err != nil {
 				return m, tea.Quit
 			}
+			return m, nil
+		case "j":
+			m.viewport.LineDown(1)
+			return m, nil
+		case "k":
+			m.viewport.LineUp(1)
+			return m, nil
+		case "up", "down", "pgup", "pgdn", "pgdown", "home", "end":
+			var cmd tea.Cmd
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
 		}
+
+	case tea.MouseMsg:
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		return m, cmd
 
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -103,10 +212,11 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 		m.lastUpdate = time.Time(msg)
+		m.viewport.SetContent(m.buildContent())
 		if !m.isComplete && m.err == nil {
 			return m, tea.Batch(tickCmd(), pollRCACmd(m.config, m.sessionID))
 		}
-		return m, tickCmd()
+		return m, nil
 
 	case pollResultMsg:
 		m.results = msg
@@ -123,6 +233,7 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.isComplete = true
 		}
 
+		m.viewport.SetContent(m.buildContent())
 		return m, nil
 
 	case pollErrorMsg:
@@ -131,6 +242,7 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg
 			m.isComplete = true
 		}
+		m.viewport.SetContent(m.buildContent())
 		return m, nil
 	}
 
@@ -141,165 +253,131 @@ func (m rcaModel) View() string {
 	if m.quitting {
 		return ""
 	}
+	header := m.buildHeader()
+	footer := m.buildFooter()
+	return lipgloss.JoinVertical(lipgloss.Left, header, m.viewport.View(), footer)
+}
 
-	var s strings.Builder
-
-	titleStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("86")).
-		Background(lipgloss.Color("235")).
-		Padding(0, 1).
-		MarginBottom(1)
-
-	headerStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("170")).
-		MarginTop(1)
-
-	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241"))
-
-	valueStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("255"))
-
-	itemStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("250")).
-		PaddingLeft(2)
-
-	errorStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("196")).
-		Padding(1)
-
-	successStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("46"))
-
+func (m rcaModel) buildHeader() string {
 	if m.err != nil {
-		s.WriteString(errorStyle.Render("❌ Error: " + m.err.Error()))
-		s.WriteString("\n\n")
-		s.WriteString(labelStyle.Render("Press Enter or Ctrl+C to exit"))
-		return s.String()
+		return rcaTitleStyle.Render("❌ RCA ANALYSIS ERROR")
 	}
 
 	if m.isComplete {
-		s.WriteString(titleStyle.Render("✅ RCA ANALYSIS COMPLETED"))
-	} else {
-		s.WriteString(titleStyle.Render(fmt.Sprintf("%s RCA ANALYSIS IN PROGRESS", m.spinner.View())))
+		return rcaTitleStyle.Render("✅ RCA ANALYSIS COMPLETED")
 	}
-	s.WriteString("\n\n")
 
-	metaBox := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("62")).
-		Padding(0, 1)
+	return rcaTitleStyle.Render(fmt.Sprintf("%s RCA ANALYSIS IN PROGRESS", m.spinner.View()))
+}
+
+func (m rcaModel) buildContent() string {
+	var s strings.Builder
+
+	if m.err != nil {
+		s.WriteString(rcaErrorStyle.Render("❌ Error: " + m.err.Error()))
+		return s.String()
+	}
 
 	metaContent := fmt.Sprintf("%s %s\n%s %s\n%s %d | %s %s",
-		labelStyle.Render("Session ID:"),
-		valueStyle.Render(m.results.SessionID),
-		labelStyle.Render("Status:"),
+		rcaLabelStyle.Render("Session ID:"),
+		rcaValueStyle.Render(m.results.SessionID),
+		rcaLabelStyle.Render("Status:"),
 		m.getStatusView(),
-		labelStyle.Render("Poll Count:"),
+		rcaLabelStyle.Render("Poll Count:"),
 		m.pollCount,
-		labelStyle.Render("Last Update:"),
-		valueStyle.Render(m.lastUpdate.Format("15:04:05")),
+		rcaLabelStyle.Render("Last Update:"),
+		rcaValueStyle.Render(m.lastUpdate.Format("15:04:05")),
 	)
-	s.WriteString(metaBox.Render(metaContent))
+	s.WriteString(rcaMetaBoxStyle.Render(metaContent))
 	s.WriteString("\n")
 
 	if m.results.ProblemShort != "" {
-		s.WriteString(headerStyle.Render("📋 Problem"))
+		s.WriteString(rcaSectionHeaderStyle.Render("📋 Problem"))
 		s.WriteString("\n")
-		s.WriteString(itemStyle.Render(m.results.ProblemShort))
+		s.WriteString(rcaItemStyle.Render(m.results.ProblemShort))
 		s.WriteString("\n")
 	}
 
 	if m.results.Recommendation != "" {
-		s.WriteString(headerStyle.Render("💡 Recommendation"))
+		s.WriteString(rcaSectionHeaderStyle.Render("💡 Recommendation"))
 		s.WriteString("\n")
-		s.WriteString(itemStyle.Render(m.results.Recommendation))
+		s.WriteString(rcaItemStyle.Render(m.results.Recommendation))
 		s.WriteString("\n")
 	}
 
-	s.WriteString(headerStyle.Render("📝 What Happened"))
+	s.WriteString(rcaSectionHeaderStyle.Render("📝 What Happened"))
 	s.WriteString("\n")
 	if len(m.results.WhatHappened) > 0 {
 		for i, event := range m.results.WhatHappened {
-			s.WriteString(itemStyle.Render(fmt.Sprintf("%d. %s", i+1, event)))
+			s.WriteString(rcaItemStyle.Render(fmt.Sprintf("%d. %s", i+1, event)))
 			s.WriteString("\n")
 		}
 	} else {
-		s.WriteString(itemStyle.Render(labelStyle.Render("⏳ Waiting for data...")))
+		s.WriteString(rcaItemStyle.Render(rcaLabelStyle.Render("⏳ Waiting for data...")))
 		s.WriteString("\n")
 	}
 
-	s.WriteString(headerStyle.Render("🔍 Evidence"))
+	s.WriteString(rcaSectionHeaderStyle.Render("🔍 Evidence"))
 	s.WriteString("\n")
 	if len(m.results.EvidenceCollection) > 0 {
-		evidenceBoxStyle := lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color("240")).
-			Padding(0, 1).
-			MarginLeft(2).
-			MarginBottom(1)
-
-		evidenceQueryStyle := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("117"))
-
-		evidenceSnippetStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252")).
-			Italic(true)
-
 		for i, evidence := range m.results.EvidenceCollection {
 			evidenceContent := fmt.Sprintf("%s\n%s",
-				evidenceQueryStyle.Render(fmt.Sprintf("%d. %s", i+1, evidence.Query)),
-				evidenceSnippetStyle.Render("   → "+evidence.Snippet),
+				rcaEvidenceQueryStyle.Render(fmt.Sprintf("%d. %s", i+1, evidence.Query)),
+				rcaEvidenceSnippetStyle.Render("   → "+evidence.Snippet),
 			)
-			s.WriteString(evidenceBoxStyle.Render(evidenceContent))
+			s.WriteString(rcaEvidenceBoxStyle.Render(evidenceContent))
 			s.WriteString("\n")
 		}
 	} else {
-		s.WriteString(itemStyle.Render(labelStyle.Render("⏳ Waiting for data...")))
+		s.WriteString(rcaItemStyle.Render(rcaLabelStyle.Render("⏳ Waiting for data...")))
 		s.WriteString("\n")
 	}
 
 	if !m.isComplete {
-		s.WriteString(headerStyle.Render("📊 Operations"))
+		s.WriteString(rcaSectionHeaderStyle.Render("📊 Operations"))
 		s.WriteString("\n")
 		if len(m.results.Operations) > 0 {
 			for i, operation := range m.results.Operations {
-				s.WriteString(itemStyle.Render(fmt.Sprintf("%d. %s", i+1, operation)))
+				s.WriteString(rcaItemStyle.Render(fmt.Sprintf("%d. %s", i+1, operation)))
 				s.WriteString("\n")
 			}
 		} else {
-			s.WriteString(itemStyle.Render(labelStyle.Render("⏳ Waiting for data...")))
+			s.WriteString(rcaItemStyle.Render(rcaLabelStyle.Render("⏳ Waiting for data...")))
 			s.WriteString("\n")
 		}
 	}
 
 	s.WriteString("\n")
 	if m.isComplete {
-		s.WriteString(successStyle.Render("✓ Analysis Complete"))
-		s.WriteString("\n")
-		s.WriteString(labelStyle.Render("Press Enter or Ctrl+C to exit"))
-	} else {
-		s.WriteString(labelStyle.Render("Press Ctrl+C to stop monitoring"))
+		s.WriteString(rcaSuccessStyle.Render("✓ Analysis Complete"))
 	}
 
 	return s.String()
 }
 
+func (m rcaModel) buildFooter() string {
+	scrollPercent := int(m.viewport.ScrollPercent()*100 + 0.5)
+	if scrollPercent < 0 {
+		scrollPercent = 0
+	}
+	if scrollPercent > 100 {
+		scrollPercent = 100
+	}
+
+	footerLeft := rcaFooterHintStyle.Render(fmt.Sprintf("↑/↓ to scroll • %d%%", scrollPercent))
+	footerRight := rcaFooterStatusStyle.Render("Press Ctrl+C to stop monitoring")
+	if m.err != nil || m.isComplete {
+		footerRight = rcaFooterStatusStyle.Render("Press Enter or Ctrl+C to exit")
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, footerLeft, "  ", footerRight)
+}
+
 func (m rcaModel) getStatusView() string {
 	if m.isComplete {
-		return lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("46")).
-			Render("✅ Complete")
+		return rcaCompleteStatusStyle.Render("✅ Complete")
 	}
-	return lipgloss.NewStyle().
-		Foreground(lipgloss.Color("226")).
-		Render("⏳ In Progress")
+	return rcaInProgressStatusStyle.Render("⏳ In Progress")
 }
 
 func (b *BubbleTeaTUI) MonitorRCA(config *Config, sessionID string) error {
@@ -309,6 +387,7 @@ func (b *BubbleTeaTUI) MonitorRCA(config *Config, sessionID string) error {
 	p := tea.NewProgram(
 		initialModel(config, sessionID),
 		tea.WithAltScreen(),
+		tea.WithMouseCellMotion(),
 	)
 
 	model, err := p.Run()
@@ -334,12 +413,7 @@ func (b *BubbleTeaTUI) DisplayFinalRCAResults(results *RCAPollResponse) {
 }
 
 func (b *BubbleTeaTUI) DisplayError(message string, err error) {
-	errorStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("196")).
-		Padding(1)
-
-	fmt.Println(errorStyle.Render(fmt.Sprintf("❌ %s: %v", message, err)))
+	fmt.Println(rcaErrorStyle.Render(fmt.Sprintf("❌ %s: %v", message, err)))
 }
 
 func (b *BubbleTeaTUI) DisplayMessage(message string) {
