@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -627,15 +626,8 @@ func wrapLineToWidth(line string, maxWidth int) []string {
 				out = append(out, b.String())
 				b.Reset()
 				currentWidth = 0
-
-				if unicode.IsSpace(r) {
-					continue
-				}
 			} else {
 				// Handle a single rune that's wider than the target width.
-				if unicode.IsSpace(r) {
-					continue
-				}
 				out = append(out, string(r))
 				continue
 			}
