@@ -268,10 +268,30 @@ func (m rcaModel) View() string {
 	return m.renderLayout(m.viewport.View())
 }
 
+func (m rcaModel) renderedHeight(content string, width int) int {
+	if width <= 0 {
+		return lipgloss.Height(content)
+	}
+
+	height := 0
+	for _, line := range strings.Split(content, "\n") {
+		lineWidth := lipgloss.Width(line)
+		if lineWidth == 0 {
+			height++
+			continue
+		}
+		height += (lineWidth-1)/width + 1
+	}
+
+	return height
+}
+
 func (m rcaModel) layoutChromeHeight() int {
 	// Measure the rendered layout with empty content so size calculations stay
-	// aligned with header/footer styles and any future layout tweaks.
-	return lipgloss.Height(m.renderLayout(""))
+	// aligned with header/footer styles and any future layout tweaks. Count
+	// visual line-wrapping at the current viewport width so narrow terminals
+	// don't under-measure the header/footer chrome.
+	return m.renderedHeight(m.renderLayout(""), m.viewport.Width)
 }
 
 func (m rcaModel) renderLayout(content string) string {
