@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -341,7 +342,7 @@ func (m rcaModel) buildContent() string {
 		rcaLabelStyle.Render("Last Update:"),
 		rcaValueStyle.Render(m.lastUpdate.Format("15:04:05")),
 	)
-	s.WriteString(rcaMetaBoxStyle.Render(metaContent))
+	s.WriteString(m.constrainBoxStyleToViewport(rcaMetaBoxStyle).Render(metaContent))
 	s.WriteString("\n")
 
 	if m.results.ProblemShort != "" {
@@ -373,12 +374,16 @@ func (m rcaModel) buildContent() string {
 	s.WriteString(rcaSectionHeaderStyle.Render("🔍 Evidence"))
 	s.WriteString("\n")
 	if len(m.results.EvidenceCollection) > 0 {
+		evidenceBoxStyle := m.constrainBoxStyleToViewport(rcaEvidenceBoxStyle)
+		evidenceInnerWidth := contentWidthForStyle(evidenceBoxStyle)
 		for i, evidence := range m.results.EvidenceCollection {
+			queryText := wrapTextToWidth(fmt.Sprintf("%d. %s", i+1, evidence.Query), evidenceInnerWidth)
+			snippetText := wrapTextToWidth("   → "+evidence.Snippet, evidenceInnerWidth)
 			evidenceContent := fmt.Sprintf("%s\n%s",
-				rcaEvidenceQueryStyle.Render(fmt.Sprintf("%d. %s", i+1, evidence.Query)),
-				rcaEvidenceSnippetStyle.Render("   → "+evidence.Snippet),
+				rcaEvidenceQueryStyle.Render(queryText),
+				rcaEvidenceSnippetStyle.Render(snippetText),
 			)
-			s.WriteString(rcaEvidenceBoxStyle.Render(evidenceContent))
+			s.WriteString(evidenceBoxStyle.Render(evidenceContent))
 			s.WriteString("\n")
 		}
 	} else {
@@ -491,6 +496,89 @@ func truncateToWidth(s string, maxWidth int) string {
 	}
 
 	return b.String() + ellipsis
+}
+
+func (m rcaModel) constrainBoxStyleToViewport(style lipgloss.Style) lipgloss.Style {
+	if m.viewport.Width <= 0 {
+		return style
+	}
+
+	constrained := style
+	availableWidth := m.viewport.Width - constrained.GetHorizontalMargins()
+	if availableWidth <= 0 {
+		constrained = constrained.MarginLeft(0).MarginRight(0)
+		availableWidth = m.viewport.Width
+	}
+
+	minimumBoxWidth := constrained.GetHorizontalPadding() + constrained.GetHorizontalBorderSize() + 1
+	if availableWidth < minimumBoxWidth {
+		availableWidth = minimumBoxWidth
+	}
+
+	return constrained.Width(availableWidth)
+}
+
+func contentWidthForStyle(style lipgloss.Style) int {
+	innerWidth := style.GetWidth() - style.GetHorizontalPadding() - style.GetHorizontalBorderSize()
+	if innerWidth < 1 {
+		return 1
+	}
+
+	return innerWidth
+}
+
+func wrapTextToWidth(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+
+	lines := strings.Split(s, "\n")
+	wrapped := make([]string, 0, len(lines))
+	for _, line := range lines {
+		wrapped = append(wrapped, wrapLineToWidth(line, maxWidth)...)
+	}
+
+	return strings.Join(wrapped, "\n")
+}
+
+func wrapLineToWidth(line string, maxWidth int) []string {
+	if line == "" {
+		return []string{""}
+	}
+
+	if lipgloss.Width(line) <= maxWidth {
+		return []string{line}
+	}
+
+	out := make([]string, 0)
+	var b strings.Builder
+	currentWidth := 0
+
+	for _, r := range line {
+		rWidth := lipgloss.Width(string(r))
+		if currentWidth+rWidth > maxWidth {
+			out = append(out, b.String())
+			b.Reset()
+			currentWidth = 0
+
+			if unicode.IsSpace(r) {
+				continue
+			}
+		}
+
+		b.WriteRune(r)
+		currentWidth += rWidth
+	}
+
+	if b.Len() > 0 {
+		out = append(out, b.String())
+	}
+
+	if len(out) == 0 {
+		return []string{""}
+	}
+
+	return out
 }
 
 func (m rcaModel) getStatusView() string {
