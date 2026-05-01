@@ -32,8 +32,6 @@ type rcaModel struct {
 	lastUpdate time.Time
 	retryCount int
 	maxRetries int
-	width      int
-	height     int
 	viewport   viewport.Model
 }
 
