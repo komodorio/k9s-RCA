@@ -165,9 +165,7 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		headerHeight := lipgloss.Height(m.buildHeader())
-		footerHeight := lipgloss.Height(m.buildFooter())
-		viewportHeight := msg.Height - headerHeight - footerHeight
+		viewportHeight := msg.Height - m.layoutChromeHeight()
 		if viewportHeight < 1 {
 			viewportHeight = 1
 		}
@@ -256,9 +254,17 @@ func (m rcaModel) View() string {
 	if m.quitting {
 		return ""
 	}
-	header := m.buildHeader()
-	footer := m.buildFooter()
-	return lipgloss.JoinVertical(lipgloss.Left, header, m.viewport.View(), footer)
+	return m.renderLayout(m.viewport.View())
+}
+
+func (m rcaModel) layoutChromeHeight() int {
+	// Measure the rendered layout with empty content so size calculations stay
+	// aligned with header/footer styles and any future layout tweaks.
+	return lipgloss.Height(m.renderLayout(""))
+}
+
+func (m rcaModel) renderLayout(content string) string {
+	return lipgloss.JoinVertical(lipgloss.Left, m.buildHeader(), content, m.buildFooter())
 }
 
 func (m rcaModel) buildHeader() string {
