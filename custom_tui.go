@@ -550,14 +550,18 @@ func (m rcaModel) constrainBoxStyleToViewport(style lipgloss.Style) lipgloss.Sty
 
 func contentWidthForStyle(style lipgloss.Style, viewportWidth int) int {
 	width := style.GetWidth()
-	if width <= 0 {
-		if viewportWidth <= 0 {
+	if width > 0 {
+		if width < 1 {
 			return 0
 		}
-		width = viewportWidth - style.GetHorizontalMargins()
+		return width
 	}
 
-	innerWidth := width - style.GetHorizontalFrameSize()
+	if viewportWidth <= 0 {
+		return 0
+	}
+
+	innerWidth := viewportWidth - style.GetHorizontalMargins() - style.GetHorizontalFrameSize()
 	if innerWidth < 1 {
 		return 0
 	}
