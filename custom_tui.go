@@ -213,6 +213,10 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case spinner.TickMsg:
+		if m.isComplete || m.err != nil {
+			return m, nil
+		}
+
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
