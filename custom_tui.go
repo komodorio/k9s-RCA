@@ -160,7 +160,7 @@ func pollRCACmd(config *Config, sessionID string) tea.Cmd {
 func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		viewportHeight := msg.Height - m.layoutChromeHeight()
+		viewportHeight := msg.Height - m.layoutChromeHeight(msg.Width)
 		if viewportHeight < 1 {
 			viewportHeight = 1
 		}
@@ -286,12 +286,12 @@ func (m rcaModel) renderedHeight(content string, width int) int {
 	return height
 }
 
-func (m rcaModel) layoutChromeHeight() int {
+func (m rcaModel) layoutChromeHeight(width int) int {
 	// Measure the rendered layout with empty content so size calculations stay
 	// aligned with header/footer styles and any future layout tweaks. Count
 	// visual line-wrapping at the current viewport width so narrow terminals
 	// don't under-measure the header/footer chrome.
-	return m.renderedHeight(m.renderLayout(""), m.viewport.Width)
+	return m.renderedHeight(m.renderLayout(""), width)
 }
 
 func (m rcaModel) renderLayout(content string) string {
@@ -404,13 +404,80 @@ func (m rcaModel) buildFooter() string {
 		scrollPercent = 100
 	}
 
-	footerLeft := rcaFooterHintStyle.Render(fmt.Sprintf("↑/↓ to scroll • %d%%", scrollPercent))
-	footerRight := rcaFooterStatusStyle.Render("Press Ctrl+C to stop monitoring")
+	footerLeftText := fmt.Sprintf("↑/↓ to scroll • %d%%", scrollPercent)
+	footerRightText := "Press Ctrl+C to stop monitoring"
 	if m.err != nil || m.isComplete {
-		footerRight = rcaFooterStatusStyle.Render("Press Enter or Ctrl+C to exit")
+		footerRightText = "Press Enter or Ctrl+C to exit"
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Left, footerLeft, "  ", footerRight)
+	footerLeftText, footerRightText, separator := fitFooterToWidth(m.viewport.Width, footerLeftText, footerRightText)
+	footerLeft := rcaFooterHintStyle.Render(footerLeftText)
+	footerRight := rcaFooterStatusStyle.Render(footerRightText)
+
+	return footerLeft + separator + footerRight
+}
+
+func fitFooterToWidth(width int, left string, right string) (string, string, string) {
+	const defaultSeparator = "  "
+
+	if width <= 0 {
+		return left, right, defaultSeparator
+	}
+
+	left = strings.ReplaceAll(left, "\n", " ")
+	right = strings.ReplaceAll(right, "\n", " ")
+
+	separator := defaultSeparator
+	totalWidth := lipgloss.Width(left) + lipgloss.Width(separator) + lipgloss.Width(right)
+	if totalWidth <= width {
+		return left, right, separator
+	}
+
+	availableLeft := width - lipgloss.Width(separator) - lipgloss.Width(right)
+	if availableLeft >= 0 {
+		return truncateToWidth(left, availableLeft), right, separator
+	}
+
+	separator = " "
+	availableLeft = width - lipgloss.Width(separator) - lipgloss.Width(right)
+	if availableLeft >= 0 {
+		return truncateToWidth(left, availableLeft), right, separator
+	}
+
+	return "", truncateToWidth(right, width), ""
+}
+
+func truncateToWidth(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+
+	if lipgloss.Width(s) <= maxWidth {
+		return s
+	}
+
+	if maxWidth == 1 {
+		return "…"
+	}
+
+	const ellipsis = "…"
+	limit := maxWidth - lipgloss.Width(ellipsis)
+	if limit <= 0 {
+		return ellipsis
+	}
+
+	var b strings.Builder
+	currentWidth := 0
+	for _, r := range s {
+		rWidth := lipgloss.Width(string(r))
+		if currentWidth+rWidth > limit {
+			break
+		}
+		b.WriteRune(r)
+		currentWidth += rWidth
+	}
+
+	return b.String() + ellipsis
 }
 
 func (m rcaModel) getStatusView() string {
