@@ -131,7 +131,7 @@ func initialModel(config *Config, sessionID string) rcaModel {
 		maxRetries: 72,
 		results:    &RCAPollResponse{SessionID: sessionID},
 	}
-	m.viewport.SetContent(m.buildContent())
+	m.refreshViewportContent()
 	return m
 }
 
@@ -165,9 +165,8 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		// Keep these in sync with buildHeader/buildFooter rendered line usage.
-		const headerHeight = 3
-		const footerHeight = 2
+		headerHeight := lipgloss.Height(m.buildHeader())
+		footerHeight := lipgloss.Height(m.buildFooter())
 		viewportHeight := msg.Height - headerHeight - footerHeight
 		if viewportHeight < 1 {
 			viewportHeight = 1
@@ -175,7 +174,7 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.viewport.Width = msg.Width
 		m.viewport.Height = viewportHeight
-		m.viewport.SetContent(m.buildContent())
+		m.refreshViewportContent()
 		return m, nil
 
 	case tea.KeyMsg:
@@ -212,7 +211,7 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 		m.lastUpdate = time.Time(msg)
-		m.viewport.SetContent(m.buildContent())
+		m.refreshViewportContent()
 		if !m.isComplete && m.err == nil {
 			return m, tea.Batch(tickCmd(), pollRCACmd(m.config, m.sessionID))
 		}
@@ -233,7 +232,7 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.isComplete = true
 		}
 
-		m.viewport.SetContent(m.buildContent())
+		m.refreshViewportContent()
 		return m, nil
 
 	case pollErrorMsg:
@@ -242,11 +241,15 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg
 			m.isComplete = true
 		}
-		m.viewport.SetContent(m.buildContent())
+		m.refreshViewportContent()
 		return m, nil
 	}
 
 	return m, nil
+}
+
+func (m *rcaModel) refreshViewportContent() {
+	m.viewport.SetContent(m.buildContent())
 }
 
 func (m rcaModel) View() string {
