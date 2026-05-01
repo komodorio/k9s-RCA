@@ -258,7 +258,18 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *rcaModel) refreshViewportContent() {
+	wasAtBottom := m.viewport.AtBottom()
+	previousYOffset := m.viewport.YOffset
+
 	m.viewport.SetContent(m.buildContent())
+
+	if wasAtBottom {
+		m.viewport.GotoBottom()
+		return
+	}
+
+	// Preserve reader position when they're reviewing older lines.
+	m.viewport.SetYOffset(previousYOffset)
 }
 
 func (m rcaModel) View() string {
