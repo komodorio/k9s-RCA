@@ -9,7 +9,6 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 )
 
 type BubbleTeaTUI struct {
@@ -259,16 +258,8 @@ func (m rcaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *rcaModel) wrapViewportContent(content string) string {
-	if m.viewport.Width <= 0 {
-		return content
-	}
-
-	return ansi.Wrap(content, m.viewport.Width, "")
-}
-
 func (m *rcaModel) refreshViewportContent() {
-	m.viewport.SetContent(m.wrapViewportContent(m.buildContent()))
+	m.viewport.SetContent(m.buildContent())
 }
 
 func (m rcaModel) View() string {
